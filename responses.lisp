@@ -56,11 +56,10 @@
 
 (defun respond (status &optional headers)
   "Respond with STATUS and HEADERS."
-  (when (eq :1.0 *protocol-version*)
-    (write-utf-8-bytes (format nil "HTTP/1.0 ~a~a"
-			       (status-string status)
-			       *return-newline*)
-		       *standard-output*))
+  (write-utf-8-bytes (format nil "HTTP/1.0 ~a~a"
+			     (status-string status)
+			     *return-newline*)
+		     *standard-output*)
   (loop for (header value) in headers
      do (write-utf-8-bytes (format nil "~a: ~a~a"
 				   header
