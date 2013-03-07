@@ -84,7 +84,7 @@ is exceeded."
       (request-buffer-to-string request-buffer))))
 
 (defun respond (connection responder)
-  "Respond to CONNECTIOn using RESPONDER."
+  "Respond to CONNECTION using RESPONDER."
   (let ((request (read-request connection)))
     (when request
       (multiple-value-bind (*request-method*
