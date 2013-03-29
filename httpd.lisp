@@ -96,16 +96,23 @@ is exceeded."
 	    (funcall responder resource if-modified-since)
 	    (respond-not-implemented))))))
 
+(defmacro handle-errors (&body body)
+  "Handle errors in BODY."
+  `(handler-case ,@body
+     (error (error) (format *error-output* "~s ~a~%" error error))))
+
 (defun accept (socket responder thread-pool)
   "Accept connection from SOCKET and respond using RESPONDER in
 THREAD-POOL."
   (let ((connection
 	 (socket-accept socket :element-type '(unsigned-byte 8))))
     (enqueue-task thread-pool
-      (let ((*standard-input* (socket-stream connection))
-	    (*standard-output* (socket-stream connection)))
-	(unwind-protect (respond connection responder)
-	  (socket-close connection))))))
+      (handle-errors
+       (let ((*standard-input* (socket-stream connection))
+	     (*standard-output* (socket-stream connection)))
+	 (unwind-protect (respond connection responder)
+	   (socket-close connection)))))))
+
 
 (defun make-server (port socket-backlog responder thread-pool)
   "Make server listening on PORT with SOCKET-BACKLOG using RESPONDER in
@@ -114,7 +121,8 @@ THREAD-POOL."
 			       :reuse-address t
 			       :backlog socket-backlog
 			       :element-type '(unsigned-byte 8))))
-    (unwind-protect (loop do (accept socket responder thread-pool))
+    (unwind-protect (loop do (handle-errors
+                              (accept socket responder thread-pool)))
       (socket-close socket))))
 
 (defun make-httpd (responder &key (port 8080)
