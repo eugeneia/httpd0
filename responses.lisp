@@ -83,33 +83,43 @@
       (mime-string (car *text-mime*) (cadr *text-mime*))
       (mime-string type subtype)))
 
-(defun headers (length type &optional write-date)
-  "Returns headers for LENGTH, TYPE and optionally WRITE-DATE."
-  `((:content-length ,(write-to-string length))
-    (:content-type ,(mime-string* (car type) (cadr type)))
+(defun headers (&key length type (date (get-universal-time)) write-date)
+  "Returns headers for LENGTH, TYPE, DATE and WRITE-DATE."
+  `(,@(when length
+	`((:content-length ,(write-to-string length))))
+    ,@(when type
+	`((:content-type ,(mime-string* (car type) (cadr type)))))
+    ,@(when date
+        `((:date ,(universal-time-to-http-date date))))
     ,@(when write-date
 	`((:last-modified ,(universal-time-to-http-date write-date))))))
 
 (defmacro respond-ok ((length type write-date) &body body)
   "Respond with BODY as entity body, described by LENGTH, TYPE and
 WRITE-DATE."
-  `(progn (respond :ok (headers ,length ,type ,write-date))
+  `(progn (respond :ok
+		   (headers :length ,length
+			    :type ,type
+			    :write-date ,write-date))
 	  (response-body ,@body)))
 
 (defun respond-not-modified ()
   "Respond with status :NOT-MODIFIED."
-  (respond :not-modified nil))
+  (respond :not-modified (headers)))
 
 (defun respond-not-found ()
   "Respond with status :NOT-FOUND."
   (respond :not-found
-	   (headers *not-found-message-length* *utf-8-text-mime*))
+	   (headers :length *not-found-message-length*
+		    :type *utf-8-text-mime*))
   (response-body
     (write-sequence *not-found-message* *standard-output*)))
 
 (defun respond-not-implemented ()
   "Respond with status :NOT-IMPLEMENTED."
   (respond :not-implemented
-	   (headers *not-implemented-message-length* *utf-8-text-mime*))
+	   (headers :length *not-implemented-message-length*
+		    :type *utf-8-text-mime*
+		    :date nil))
   (response-body
     (write-sequence *not-implemented-message* *standard-output*)))
