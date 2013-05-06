@@ -12,17 +12,22 @@
 
 (in-package :httpd0.resource-responder)
 
+(defun valid-request-p (request)
+  "Predicate to check if REQUEST should honored."
+  (not (member :up (pathname-directory request))))
+
 (defun directory-index (path)
   "Return index for directory at PATH or NIL."
   (first (directory (merge-pathnames #p"index.*" path))))
 
 (defun locate-resource (request root)
   "Return resource for REQUEST in ROOT."
-  (let ((path (probe-file (merge-pathnames request root))))
-    (when path
-      (or (when (directory-pathname-p path)
-	    (directory-index path))
-	  path))))
+  (when (valid-request-p request)
+    (let ((path (probe-file (merge-pathnames request root))))
+      (when path
+	(or (when (directory-pathname-p path)
+	      (directory-index path))
+	    path)))))
 
 (defun last-directory (path)
   "Reduce directory of PATH to its right most directory component."
@@ -30,17 +35,17 @@
 		 :directory `(:relative
 			      ,@(last (pathname-directory path)))))
 
-(defun serve-file (path write-date)
-  "Serve file at PATH with WRITE-DATE."
-  (with-open-file (in path :element-type '(unsigned-byte 8))
-    (respond-ok ((file-length in) (file-mime path) write-date)
-      (copy-stream in *standard-output*))))
-
 (defun entry-name (entry)
   "Returns name for directory ENTRY."
   (if (directory-pathname-p entry)
       (namestring (last-directory entry))
       (file-namestring entry)))
+
+(defun serve-file (path write-date)
+  "Serve file at PATH with WRITE-DATE."
+  (with-open-file (in path :element-type '(unsigned-byte 8))
+    (respond-ok ((file-length in) (file-mime path) write-date)
+      (copy-stream in *standard-output*))))
 
 (defun directory-listing (path)
   "Create directory listing for PATH."
