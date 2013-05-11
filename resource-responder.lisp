@@ -7,6 +7,7 @@
 	:cl-fad
 	:trivial-utf-8
 	:file-types
+        :pretty-string
 	:httpd0.responses)
   (:export :make-resource-responder))
 
@@ -29,17 +30,11 @@
 	      (directory-index path))
 	    path)))))
 
-(defun last-directory (path)
-  "Reduce directory of PATH to its right most directory component."
-  (make-pathname :defaults path
-		 :directory `(:relative
-			      ,@(last (pathname-directory path)))))
-
 (defun entry-name (entry)
   "Returns name for directory ENTRY."
-  (if (directory-pathname-p entry)
-      (namestring (last-directory entry))
-      (file-namestring entry)))
+  (native-namestring (if (directory-pathname-p entry)
+                         (car (last (pathname-directory entry)))
+                         (file-namestring entry))))
 
 (defun serve-file (path write-date)
   "Serve file at PATH with WRITE-DATE."

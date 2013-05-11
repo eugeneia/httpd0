@@ -25,4 +25,5 @@
 	       "smug"
 	       "percent-encoding"
 	       "cl-fad"
-	       "file-types"))
+	       "file-types"
+               "pretty-string"))
