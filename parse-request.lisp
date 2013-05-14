@@ -54,8 +54,9 @@
 
 (defun =resource ()
   "Parser for requested resource."
-  (=and (=maybe (=host))
-	(=funcall (=resource-path) #'decode-resource)))
+  (=let* ((_ (=maybe (=host)))
+          (resource (=resource-path)))
+    (=result (decode-resource resource))))
 
 (defun =endline ()
   "Parser for HTTP CRLF."
@@ -93,10 +94,9 @@
 
 (defun =if-modified-since ()
   "Parser for IF-MODIFIED-SINCE header."
-  (=funcall (=zero-or-more (=header))
-	    (lambda (headers)
-	      (parse-time (cadr (assoc "IF-MODIFIED-SINCE" headers
-				       :test #'string-equal))))))
+  (=let* ((headers (=zero-or-more (=header))))
+    (=result (parse-time (cadr (assoc "IF-MODIFIED-SINCE" headers
+                                      :test #'string-equal))))))
 
 (defun =request ()
   "Parser for request."
