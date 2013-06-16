@@ -31,8 +31,7 @@
   "ASCII code for #\Newline.")
 
 (defun request-complete-p (request-buffer pos)
-  "Predicate to test if REQUEST-BUFFER contains a complete
-request."
+  "Predicate to test if REQUEST-BUFFER contains a complete request."
   ;; WARNING: Most ridiculous piece of code ever...
   (or (and (> pos 2)
 	   (= *newline-code*
