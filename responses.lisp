@@ -82,7 +82,8 @@
 (defun mime-string* (type subtype)
   (if (and (string= "text" type)
 	   (string= "plain" subtype))
-      (mime-string (car *text-mime*) (cadr *text-mime*))
+      (destructuring-bind (type subtype) *text-mime*
+        (mime-string type subtype))
       (mime-string type subtype)))
 
 (defun headers (&key length type (date (get-universal-time)) write-date
@@ -91,7 +92,8 @@
   `(,@(when length
 	`((:content-length ,(write-to-string length))))
     ,@(when type
-	`((:content-type ,(mime-string* (car type) (cadr type)))))
+        `((:content-type ,(destructuring-bind (type subtype) type
+                            (mime-string* type subtype)))))
     ,@(when date
         `((:date ,(universal-time-to-http-date date))))
     ,@(when write-date
@@ -124,14 +126,14 @@ WRITE-DATE."
   "Respond with status :NOT-FOUND."
   (respond :not-found
 	   (headers :length *not-found-message-length*
-		    :type *utf-8-text-mime*))
+		    :type *text-mime*))
   (response-body (write-sequence *not-found-message* *standard-output*)))
 
 (defun respond-not-implemented ()
   "Respond with status :NOT-IMPLEMENTED."
   (respond :not-implemented
 	   (headers :length *not-implemented-message-length*
-		    :type *utf-8-text-mime*
+		    :type *text-mime*
 		    :date nil))
   (response-body
     (write-sequence *not-implemented-message* *standard-output*)))
