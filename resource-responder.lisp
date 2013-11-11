@@ -33,10 +33,15 @@
                                    (merge-pathnames request #p"/"))))
             (values :ok path))))))
 
+(defun last-directory (path)
+  "Return pathname for relative last directory of PATH."
+  (let ((last-directory (car (last (pathname-directory path)))))
+    (make-pathname :directory `(:relative ,last-directory))))
+
 (defun entry-name (entry)
   "Returns name for directory ENTRY."
   (native-namestring (if (directory-pathname-p entry)
-                         (car (last (pathname-directory entry)))
+                         (directory-namestring (last-directory entry))
                          (file-namestring entry))))
 
 (defun serve-file (path write-date)
