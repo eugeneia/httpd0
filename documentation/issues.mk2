@@ -1,4 +1,3 @@
-+ Add HOST parameter to MAKE-HTTPD.
 + Requesting large files -> loose connection?
 + Better directory listing (directories should end with slashes, maybe
 add entry point for alternate directory listing generators).

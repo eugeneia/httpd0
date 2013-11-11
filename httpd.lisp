@@ -113,10 +113,10 @@ THREAD-POOL."
 	   (socket-close connection)))))))
 
 
-(defun make-server (port socket-backlog responder thread-pool)
-  "Make server listening on PORT with SOCKET-BACKLOG using RESPONDER in
-THREAD-POOL."
-  (let ((socket (socket-listen *wildcard-host* port
+(defun make-server (host port socket-backlog responder thread-pool)
+  "Make server listening on HOST and PORT with SOCKET-BACKLOG using
+RESPONDER in THREAD-POOL."
+  (let ((socket (socket-listen host port
 			       :reuse-address t
 			       :backlog socket-backlog
 			       :element-type '(unsigned-byte 8))))
@@ -124,14 +124,17 @@ THREAD-POOL."
                               (accept socket responder thread-pool)))
       (socket-close socket))))
 
-(defun make-httpd (responder &key (port 8080)
+(defun make-httpd (responder &key (host *wildcard-host*)
+                                  (port 8080)
 			          (n-threads 16)
 		                  (socket-backlog 32))
-  "Make HTTP server which listens on PORT with N-THREADS and responds
-with RESPONDER."
+  "Make HTTP server which listens on HOST and PORT with N-THREADS and
+responds with RESPONDER. Unless a HOST is specified, the daemon will
+listen on all adresses. PORT defaults to 8080, N-THREADS to 16 and
+SOCKET-BACKLOG to 32." 
   (let ((thread-pool (make-thread-pool n-threads (* 4 n-threads))))
     (enqueue-task thread-pool
-      (make-server port socket-backlog responder thread-pool))
+      (make-server host port socket-backlog responder thread-pool))
     thread-pool))
 
 (defun destroy-httpd (httpd)
