@@ -74,7 +74,6 @@
   (lambda (resource if-modified-since)
     (multiple-value-bind (status path)
         (locate-resource resource root)
-      (format *error-output* "~a ~a~%" status path)
       (case status
         (:ok (serve path if-modified-since))
         (:redirect (respond-moved-permanently (native-namestring path)))
