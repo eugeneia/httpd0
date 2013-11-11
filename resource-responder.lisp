@@ -26,9 +26,12 @@
   (when (valid-request-p request)
     (let ((path (probe-file (merge-pathnames request root))))
       (when path
-	(or (when (directory-pathname-p path)
-	      (directory-index path))
-	    path)))))
+        (if (directory-pathname-p path)
+            (if (directory-pathname-p request)
+                (values :ok (or (directory-index path) path))
+                (values :redirect (pathname-as-directory
+                                   (merge-pathnames request #p"/"))))
+            (values :ok path))))))
 
 (defun entry-name (entry)
   "Returns name for directory ENTRY."
@@ -58,17 +61,21 @@
 (defun serve (resource if-modified-since)
   "Serve RESOURCE unless it has not been modified since
  IF-MODIFIED-SINCE."
-  (if resource
-      (let ((write-date (file-write-date resource)))
-	(if (and if-modified-since
-		 (>= if-modified-since write-date))
-	    (respond-not-modified)
-	    (if (directory-pathname-p resource)
-		(serve-directory resource write-date)
-		(serve-file resource write-date))))
-      (respond-not-found)))
+  (let ((write-date (file-write-date resource)))
+    (if (and if-modified-since
+             (>= if-modified-since write-date))
+        (respond-not-modified)
+        (if (directory-pathname-p resource)
+            (serve-directory resource write-date)
+            (serve-file resource write-date)))))
 
 (defun make-resource-responder (root)
   "Return resource responder for ROOT."
   (lambda (resource if-modified-since)
-    (serve (locate-resource resource root) if-modified-since)))
+    (multiple-value-bind (status path)
+        (locate-resource resource root)
+      (format *error-output* "~a ~a~%" status path)
+      (case status
+        (:ok (serve path if-modified-since))
+        (:redirect (respond-moved-permanently (native-namestring path)))
+        (otherwise (respond-not-found))))))

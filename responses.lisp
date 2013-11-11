@@ -9,16 +9,17 @@
 	   :*request-method*
 	   :*text-mime*
 	   :respond-ok
+           :respond-moved-permanently
 	   :respond-not-modified
 	   :respond-not-found
 	   :respond-not-implemented))
 
 (in-package :httpd0.responses)
 
-(defparameter *protocol-version* :1.0
-  "Protocol version can be :0.9 or :1.0.")
+(defvar *protocol-version* nil
+  "Protocol version may be :0.9 or :1.0.")
 
-(defparameter *request-method* :get
+(defvar *request-method* nil
   "Request method may be :GET or :HEAD.")
 
 (defparameter *utf-8-text-mime* '("text" "plain; charset=utf-8")
@@ -49,10 +50,11 @@
 (defun status-string (status)
   "Return string for STATUS."
   (ecase status
-    (:ok              "200 OK")
-    (:not-modified    "304 NOT MODIFIED")
-    (:not-found       "404 NOT FOUND")
-    (:not-implemented "501 NOT IMPLEMENTED")))
+    (:ok                "200 OK")
+    (:moved-permanently "301 MOVED PERMANENTLY")
+    (:not-modified      "304 NOT MODIFIED")
+    (:not-found         "404 NOT FOUND")
+    (:not-implemented   "501 NOT IMPLEMENTED")))
 
 (defun respond (status &optional headers)
   "Respond with STATUS and HEADERS."
@@ -83,8 +85,9 @@
       (mime-string (car *text-mime*) (cadr *text-mime*))
       (mime-string type subtype)))
 
-(defun headers (&key length type (date (get-universal-time)) write-date)
-  "Returns headers for LENGTH, TYPE, DATE and WRITE-DATE."
+(defun headers (&key length type (date (get-universal-time)) write-date
+                  location)
+  "Returns headers for LENGTH, TYPE, DATE, WRITE-DATE and LOCATION."
   `(,@(when length
 	`((:content-length ,(write-to-string length))))
     ,@(when type
@@ -92,7 +95,9 @@
     ,@(when date
         `((:date ,(universal-time-to-http-date date))))
     ,@(when write-date
-	`((:last-modified ,(universal-time-to-http-date write-date))))))
+	`((:last-modified ,(universal-time-to-http-date write-date))))
+    ,@(when location
+        `((:location ,location)))))
 
 (defmacro respond-ok ((length type write-date) &body body)
   "Respond with BODY as entity body, described by LENGTH, TYPE and
@@ -103,6 +108,14 @@ WRITE-DATE."
 			    :write-date ,write-date))
 	  (response-body ,@body)))
 
+(defun respond-moved-permanently (location)
+  "Return with status :MOVED-PERMANENTLY (to LOCATION)."
+  (let ((message (string-to-utf-8-bytes
+                  (format nil "Moved permanently to ~a .~%" location))))
+    (respond :moved-permanently (headers :length (length message)
+                                         :location location))
+    (response-body (write-sequence message *standard-output*))))
+
 (defun respond-not-modified ()
   "Respond with status :NOT-MODIFIED."
   (respond :not-modified (headers)))
@@ -112,8 +125,7 @@ WRITE-DATE."
   (respond :not-found
 	   (headers :length *not-found-message-length*
 		    :type *utf-8-text-mime*))
-  (response-body
-    (write-sequence *not-found-message* *standard-output*)))
+  (response-body (write-sequence *not-found-message* *standard-output*)))
 
 (defun respond-not-implemented ()
   "Respond with status :NOT-IMPLEMENTED."
