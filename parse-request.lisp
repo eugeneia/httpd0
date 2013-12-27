@@ -49,8 +49,11 @@
 
 (defun decode-resource (resource-string)
   "Decode RESOURCE-STRING."
-  (pathname (%-decode-string
-	     (strip-query (strip-root resource-string)))))
+  (handler-case (pathname (%-decode-string
+                           (strip-query (strip-root resource-string))))
+    ;; Yield nil when RESOURCE-STRING can not be converted to a
+    ;; pathname.
+    (error () nil)))
 
 (defun =resource ()
   "Parser for requested resource."
