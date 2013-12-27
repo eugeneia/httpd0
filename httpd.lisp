@@ -91,8 +91,10 @@ is exceeded."
 			    *protocol-version*
 			    if-modified-since)
 	  (parse-request request)
-	(if (and *protocol-version* *request-method* resource)
-	    (funcall responder resource if-modified-since)
+	(if (and *protocol-version* *request-method*)
+            (if resource
+                (funcall responder resource if-modified-since)
+                (respond-not-found))
 	    (respond-not-implemented))))))
 
 (defmacro handle-errors (&body body)
