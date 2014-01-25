@@ -57,7 +57,8 @@
     (:not-implemented   "501 NOT IMPLEMENTED")))
 
 (defun respond (status &optional headers)
-  "Respond with STATUS and HEADERS."
+  "Respond with STATUS, HEADERS and response head terminating
+*RETURN-NEWLINE*."
   (write-utf-8-bytes (format nil "HTTP/1.0 ~a~a"
 			     (status-string status)
 			     *return-newline*)
@@ -67,12 +68,12 @@
 				   header
 				   value
 				   *return-newline*)
-			   *standard-output*)))
+			   *standard-output*))
+  (write-utf-8-bytes *return-newline* *standard-output*))
 
 (defmacro response-body (&body body)
   "Execute BODY only when *REQUEST-METHOD* is :GET."
   `(when (eq :get *request-method*)
-     (write-utf-8-bytes *return-newline* *standard-output*)
      ,@body))
 
 (defun mime-string (type subtype)
