@@ -22,7 +22,7 @@
 	       "usocket"
 	       "trivial-utf-8"
 	       "net-telent-date"
-	       "smug"
+	       "mpc"
 	       "percent-encoding"
 	       "cl-fad"
 	       "file-types"

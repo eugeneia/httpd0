@@ -4,9 +4,9 @@
   (:documentation
    "Parse HTTP/1.0 GET and HEAD requests.")
   (:use :cl
-	:smug
-	:smug.characters
-	:smug.numerals
+	:mpc
+	:mpc.characters
+	:mpc.numerals
 	:percent-encoding
 	:net.telent.date)
   (:export :parse-request))
