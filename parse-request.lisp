@@ -17,16 +17,16 @@
   "Parse TOKEN as OBJECT."
   (=and token (=result object)))
 
-(defun =method-token (token-string symbol)
-  "Parse method TOKEN-STRING as symbol."
-  (=token (=and (=string token-string nil)
+(defun =method-token (symbol)
+  "Parse method prefix for SYMBOL."
+  (=token (=and (=string (symbol-name symbol) nil)
 		(=character #\Space))
 	  symbol))
 
 (defun =method ()
   "Parser for request method."
-  (=or (=method-token "GET"  :get)
-       (=method-token "HEAD" :head)))
+  (=or (=method-token :get)
+       (=method-token :head)))
 
 (defun =host ()
   "Parser for resource host."
