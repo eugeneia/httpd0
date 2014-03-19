@@ -34,14 +34,14 @@
 	(=one-or-more (=not (=or (=whitespace)
 				 (=character #\/))))))
 
+(defun =query-delimiter ()
+  "Parser for request query parameters delimiter."
+  (=character #\?))
+
 (defun =resource-path ()
   "Paser for resource path."
-  (=prog1 (=string-of (=not (=whitespace)))
-	  (=maybe (=character #\Space))))
-
-(defun strip-query (resource-string)
-  "Strip query from RESOURCE-STRING."
-  (subseq resource-string 0 (position #\? resource-string)))
+  (=string-of (=not (=or (=whitespace)
+                         (=query-delimiter)))))
 
 (defun strip-root (resource-string)
   "Strip root from RESOURCE-STRING."
@@ -49,8 +49,7 @@
 
 (defun decode-resource (resource-string)
   "Decode RESOURCE-STRING."
-  (handler-case (pathname (%-decode-string
-                           (strip-query (strip-root resource-string))))
+  (handler-case (pathname (%-decode-string (strip-root resource-string)))
     ;; Yield nil when RESOURCE-STRING can not be converted to a
     ;; pathname.
     (error () nil)))
@@ -58,8 +57,39 @@
 (defun =resource ()
   "Parser for requested resource."
   (=let* ((_ (=maybe (=host)))
-          (resource (=resource-path)))
+          (resource (=resource-path))
+          (_ (=maybe (=character #\Space))))
     (=result (decode-resource resource))))
+
+(defun =parameter ()
+  "Parser for query parameter."
+  (=when (=not (=whitespace)) ; Terminated by whitespace.
+         (=let* (
+                 ;; KEY is is a string terminated by #\&, #\= or
+                 ;; whitespace.
+                 (key (=string-of (=not (=or (=one-of '(#\& #\=))
+                                             (=whitespace)))))
+                 ;; VALUE is optional, it can be either #\= followed by a
+                 ;; string terminated by #\& or whitespace, just #\= by
+                 ;; itself or nothing at all.
+                 (value (=or
+                         ;; VALUE will be the string after #\=.
+                         (=and (=character #\=)
+                               (=string-of (=not (=or (=character #\&)
+                                                      (=whitespace)))))
+                         ;; VALUE will be NIL.
+                         (=maybe (=and (=character #\=)
+                                       (=result nil)))))
+                 ;; Consume terminating #\& if present.
+                 (_ (=maybe (=character #\&))))
+           ;; Return KEY and VALUE as a cons.
+           (=result (cons key value)))))
+
+(defun =parameters ()
+  "Parser for query parameters."
+  (=prog2 (=query-delimiter)
+          (=zero-or-more (=parameter)) ; Assoc-list of parameters.
+          (=maybe (=character #\Space))))
 
 (defun =endline ()
   "Parser for HTTP CRLF."
@@ -105,6 +135,7 @@
   "Parser for request."
   (=list (=method)
 	 (=resource)
+         (=maybe (=parameters))
 	 (=version)
 	 (=maybe (=if-modified-since))))
 

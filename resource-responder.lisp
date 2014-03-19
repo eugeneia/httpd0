@@ -76,7 +76,8 @@
 
 (defun make-resource-responder (root)
   "Return resource responder for ROOT."
-  (lambda (resource if-modified-since)
+  (lambda (resource parameters if-modified-since)
+    (declare (ignore parameters))
     (multiple-value-bind (status path)
         (locate-resource resource root)
       (case status

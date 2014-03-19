@@ -88,12 +88,13 @@ is exceeded."
     (when request
       (multiple-value-bind (*request-method*
 			    resource
+                            parameters
 			    *protocol-version*
 			    if-modified-since)
 	  (parse-request request)
 	(if (and *protocol-version* *request-method*)
             (if resource
-                (funcall responder resource if-modified-since)
+                (funcall responder resource parameters if-modified-since)
                 (respond-not-found))
 	    (respond-not-implemented))))))
 
