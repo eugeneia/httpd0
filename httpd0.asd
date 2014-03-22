@@ -10,6 +10,9 @@
 (defsystem httpd0
   :description
   "HTTP/1.0 GET/HEAD server."
+  :version "1.0"
+  :license "GNU AGPL"
+  :author "Max Rottenkolber <max@mr.gy>"
   :components ((:file "parse-request")
 	       (:file "responses")
 	       (:file "resource-responder"

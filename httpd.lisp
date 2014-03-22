@@ -11,7 +11,6 @@
 	:httpd0.resource-responder)
   (:export :*request-size*
 	   :*request-timeout*
-	   :*text-mime*
 	   :make-httpd
 	   :destroy-httpd
 	   :make-resource-responder))
@@ -19,10 +18,10 @@
 (in-package :httpd0)
 
 (defparameter *request-size* 512
-  "Maxmum size of a request.")
+  "Maxmum size of a request (in bytes).")
 
 (defparameter *request-timeout* 64
-  "Timeout for clients to submit request.")
+  "Timeout for clients to submit request (in seconds).")
 
 (defparameter *return-code* (char-code #\Return)
   "ASCII code for #\Return.")
