@@ -4,10 +4,12 @@
   (:documentation "HTTPD0 responses.")
   (:use :cl
 	:trivial-utf-8
-	:net.telent.date)
+	:net.telent.date
+        :percent-encoding)
   (:export :*protocol-version*
 	   :*request-method*
 	   :*text-mime*
+           :uri-encode
 	   :respond-ok
            :respond-moved-permanently
 	   :respond-not-modified
@@ -46,6 +48,15 @@
 
 (defparameter *return-newline* (format nil "~a~a" #\Return #\Newline)
   "Carriage return followed by Newline.")
+
+(defun uri-encode (string)
+  "URI encode STRING."
+  (%-encode-string string
+                   (lambda (char)
+                     ;; Omitted / and CTL on purpose.
+                     (member char '(#\; #\? #\: #\@ #\& #\= #\+ #\! #\*
+                                    #\' #\( #\) #\, #\Space #\" #\# #\%
+                                    #\< #\>)))))
 
 (defun status-string (status)
   "Return string for STATUS."
@@ -115,8 +126,9 @@ WRITE-DATE."
   "Return with status :MOVED-PERMANENTLY (to LOCATION)."
   (let ((message (string-to-utf-8-bytes
                   (format nil "Moved permanently to ~a .~%" location))))
-    (respond :moved-permanently (headers :length (length message)
-                                         :location location))
+    (respond :moved-permanently
+             (headers :length (length message)
+                      :location (uri-encode location)))
     (response-body (write-sequence message *standard-output*))))
 
 (defun respond-not-modified ()
