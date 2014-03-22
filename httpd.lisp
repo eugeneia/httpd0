@@ -11,7 +11,6 @@
 	:httpd0.resource-responder)
   (:export :*request-size*
 	   :*request-timeout*
-	   :*text-mime*
 	   :make-httpd
 	   :destroy-httpd
 	   :make-resource-responder))
