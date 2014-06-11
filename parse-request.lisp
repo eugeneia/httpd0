@@ -49,7 +49,9 @@
 
 (defun decode-resource (resource-string)
   "Decode RESOURCE-STRING."
-  (handler-case (pathname (%-decode-string (strip-root resource-string)))
+  (handler-case (pathname (decode (strip-root resource-string)
+                                  :www-form nil
+                                  :encoding :utf-8))
     ;; Yield nil when RESOURCE-STRING can not be converted to a
     ;; pathname.
     (error () nil)))
