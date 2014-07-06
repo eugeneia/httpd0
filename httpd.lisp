@@ -44,8 +44,8 @@
 		  (aref request-buffer pos)       ; X  LF
 		  (aref request-buffer (1- pos))) ; LF X
 	       (= *return-code*
-		  (aref request-buffer pos)           ; X  LF
-		  (aref request-buffer (1- pos))))))) ; LF X
+		  (aref request-buffer pos)           ; X  CR
+		  (aref request-buffer (1- pos))))))) ; CR X
 
 (defun timeout-p (connection)
   "Predicate to test if CONNECTION timed out."

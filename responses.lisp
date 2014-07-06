@@ -49,14 +49,14 @@
 (defparameter *return-newline* (format nil "~a~a" #\Return #\Newline)
   "Carriage return followed by Newline.")
 
+(declaim (inline uri-encode-p))
+(defun uri-encode-p (c)
+  (or (unreservedp c)
+      (reservedp c)))
+
 (defun uri-encode (string)
   "URI encode STRING."
-  (%-encode-string string
-                   (lambda (char)
-                     ;; Omitted / and CTL on purpose.
-                     (member char '(#\; #\? #\: #\@ #\& #\= #\+ #\! #\*
-                                    #\' #\( #\) #\, #\Space #\" #\# #\%
-                                    #\< #\>)))))
+  (encode string :test 'uri-encode-p :www-form nil :encoding :utf-8))
 
 (defun status-string (status)
   "Return string for STATUS."
