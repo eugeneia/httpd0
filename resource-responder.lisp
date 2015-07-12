@@ -75,7 +75,14 @@
             (serve-file resource write-date)))))
 
 (defun make-resource-responder (root)
-  "Return resource responder for ROOT."
+  "*Arguments and Values:*
+
+   _root_—a _directory pathname_.
+
+   *Description:*
+
+   {make-resource-responder} returns a _responder function_ that serves
+   the files under _root_."
   (lambda (resource if-modified-since)
     (multiple-value-bind (status path)
         (locate-resource resource root)

@@ -1,7 +1,9 @@
 ;;;; HTTPD0 responses.
 
 (defpackage httpd0.responses
-  (:documentation "HTTPD0 responses.")
+  (:documentation
+   "Toolkit for writing _responder functions_. Includes common responses
+    and generic response templates.")
   (:use :cl
 	:trivial-utf-8
 	:net.telent.date
@@ -19,16 +21,30 @@
 (in-package :httpd0.responses)
 
 (defvar *protocol-version* nil
-  "Protocol version may be :0.9 or :1.0.")
+  "*Description:*
+
+   {*protocol-version*} is bound to a _symbol_ indicating the protocol
+   version is use when calling a _responder function_.
+   {*protocol-version*} can be either {:0.9} or {:1.0} to indicate
+   HTTP/0.9 or HTTP/1.0 respectively.")
 
 (defvar *request-method* nil
-  "Request method may be :GET or :HEAD.")
+  "*Description:*
+
+   {*request-method*} is bound to a _symbol_ indicating the request
+   method served when calling a _responder function_. {*request-method*}
+   can be either {:get} or {:head} indicating a GET or HEAD request
+   respectively.")
 
 (defparameter *utf-8-text-mime* '("text" "plain; charset=utf-8")
   "Mime type for plain text.")
 
 (defparameter *text-mime* *utf-8-text-mime*
-  "Mime type for plain text files.")
+  "*Description:*
+
+   {*text-mime*} is bound to a _list_ of two _strings_ that designates a
+   MIME type, to which responses for the {text/plain} MIME type will be
+   upgraded to.")
 
 (defparameter *not-found-message*
   (string-to-utf-8-bytes (format nil "?~%Not found~%"))
@@ -55,8 +71,18 @@
       (reservedp c)))
 
 (defun uri-encode (string)
-  "URI encode STRING."
-  (encode string :test 'uri-encode-p :www-form nil :encoding :utf-8))
+  "*Arguments and Values:*
+
+   _string_—a _string_.
+
+   *Description:*
+
+   {uri-encode} returns an URI safe copy of _string_.
+
+   *See Also:*
+
+   + [percent-encoding](http://tools.ietf.org/html/rfc3986#section-2.1)"
+  (encode string :test #'uri-encode-p :www-form nil :encoding :utf-8))
 
 (defun status-string (status)
   "Return string for STATUS."
@@ -114,8 +140,21 @@
         `((:location ,location)))))
 
 (defmacro respond-ok ((length type write-date) &body body)
-  "Respond with BODY as entity body, described by LENGTH, TYPE and
-WRITE-DATE."
+  "*Arguments and Values:*
+
+   _length_—an _integer_.
+
+   _type_—a _list_ of two _strings_ designating a MIME type.
+
+   _write-date_—a date as _universal time_.
+
+   _body_—_forms_ that print _length_ bytes to {*standard-output*}.
+
+   *Description:*
+
+   {respond-ok} responds with HTTP status {:ok} for an entity of _length_
+   bytes with MIME _type_ and _write-date_. The _body_ forms must write
+   the contents of the HTTP entity to {*standard-output*}."
   `(progn (respond :ok
 		   (headers :length ,length
 			    :type ,type
@@ -123,7 +162,14 @@ WRITE-DATE."
 	  (response-body ,@body)))
 
 (defun respond-moved-permanently (location)
-  "Return with status :MOVED-PERMANENTLY (to LOCATION)."
+  "*Arguments and Values:*
+
+   _location_—a _string_ denoting an URI.
+
+   *Description:*
+
+   {respond-moved-permanently} responds with HTTP status
+   {:moved-permanently} to _location_."
   (let ((message (string-to-utf-8-bytes
                   (format nil "Moved permanently to ~a .~%" location))))
     (respond :moved-permanently
@@ -132,18 +178,36 @@ WRITE-DATE."
     (response-body (write-sequence message *standard-output*))))
 
 (defun respond-not-modified ()
-  "Respond with status :NOT-MODIFIED."
+  "*Arguments and Values:*
+
+   None.
+
+   *Description:*
+
+   {respond-not-modified} responds with HTTP status {:not-modified}."
   (respond :not-modified (headers)))
 
 (defun respond-not-found ()
-  "Respond with status :NOT-FOUND."
+  "*Arguments and Values:*
+
+   None.
+
+   *Description:*
+
+   {respond-not-found} responds with HTTP status {:not-found}."
   (respond :not-found
 	   (headers :length *not-found-message-length*
 		    :type *text-mime*))
   (response-body (write-sequence *not-found-message* *standard-output*)))
 
 (defun respond-not-implemented ()
-  "Respond with status :NOT-IMPLEMENTED."
+  "*Arguments and Values:*
+
+   None.
+
+   *Description:*
+
+   {respond-not-implemented} responds with HTTP status {:not-implemented}."
   (respond :not-implemented
 	   (headers :length *not-implemented-message-length*
 		    :type *text-mime*
