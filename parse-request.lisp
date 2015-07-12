@@ -8,7 +8,7 @@
 	:mpc.characters
 	:mpc.numerals
 	:percent-encoding
-	:net.telent.date)
+        :cl-date-time-parser)
   (:export :parse-request))
 
 (in-package :httpd0.parse-request)
@@ -100,8 +100,11 @@
 (defun =if-modified-since ()
   "Parser for IF-MODIFIED-SINCE header."
   (=let* ((headers (=zero-or-more (=header))))
-    (=result (parse-time (cadr (assoc "IF-MODIFIED-SINCE" headers
-                                      :test #'string-equal))))))
+    (=result (let ((if-modified-since
+                    (cadr (assoc "IF-MODIFIED-SINCE" headers
+                                 :test #'string-equal))))
+               (and if-modified-since
+                    (parse-date-time if-modified-since))))))
 
 (defun =request ()
   "Parser for request."

@@ -24,7 +24,7 @@
   :depends-on ("q-thread-pool"
 	       "usocket"
 	       "trivial-utf-8"
-	       "net-telent-date"
+               "cl-date-time-parser"
 	       "mpc"
 	       "percent-encoding"
 	       "cl-fad"

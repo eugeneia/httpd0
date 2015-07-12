@@ -6,7 +6,6 @@
     and generic response templates.")
   (:use :cl
 	:trivial-utf-8
-	:net.telent.date
         :percent-encoding)
   (:export :*protocol-version*
 	   :*request-method*
@@ -123,6 +122,18 @@
       (destructuring-bind (type subtype) *text-mime*
         (mime-string type subtype))
       (mime-string type subtype)))
+
+(let ((days #("Mon" "Tue" "Wed" "Thu" "Fri" "Sat" "Sun"))
+      (months #("Jan" "Feb" "Mar" "Apr" "May" "Jun"
+                "Jul" "Aug" "Sep" "Oct" "Nov" "Dec")))
+  (defun universal-time-to-http-date (universal-time)
+    (multiple-value-bind (second minute hour date month year day
+                          daylight-p zone)
+        (decode-universal-time universal-time 0) ; Always GMT
+      (declare (ignore daylight-p zone))
+      (format nil "~a, ~d ~a ~d ~2,'0d:~2,'0d:~2,'0d GMT"
+              (aref days day) date (aref months (1- month)) year
+              hour minute second))))
 
 (defun headers (&key length type (date (get-universal-time)) write-date
                   location)
