@@ -29,4 +29,4 @@
 	       "percent-encoding"
 	       "cl-fad"
 	       "file-types"
-               "pretty-string"))
+               "uiop"))

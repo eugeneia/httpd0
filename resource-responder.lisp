@@ -4,11 +4,11 @@
   (:documentation
    "HTTPD0 resource responder.")
   (:use :cl
-	:cl-fad
-	:trivial-utf-8
-	:file-types
-        :pretty-string
-	:httpd0.responses)
+        :cl-fad
+        :trivial-utf-8
+        :file-types
+        :httpd0.responses)
+  (:import-from :uiop :native-namestring)
   (:export :make-resource-responder))
 
 (in-package :httpd0.resource-responder)
