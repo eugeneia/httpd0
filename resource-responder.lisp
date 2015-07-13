@@ -54,7 +54,7 @@
   "Create directory listing for PATH."
   (string-to-utf-8-bytes
    (with-output-to-string (out)
-     (dolist (entry (list-directory path))
+     (dolist (entry (list-directory path :follow-symlinks nil))
        (format out "~a~%" (entry-name entry))))))
 
 (defun serve-directory (path write-date)
