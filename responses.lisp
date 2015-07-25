@@ -81,7 +81,7 @@
    *See Also:*
 
    + [percent-encoding](http://tools.ietf.org/html/rfc3986#section-2.1)"
-  (encode string :test #'uri-encode-p :www-form nil :encoding :utf-8))
+  (encode string :test 'uri-encode-p :www-form nil :encoding :utf-8))
 
 (defun status-string (status)
   "Return string for STATUS."
