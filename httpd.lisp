@@ -162,16 +162,16 @@ RESPONDER in THREAD-POOL."
 
    _responder_—a _responder function_.
 
-   _host_—a _host_ as defined by usocket. Default is
+   _host_—a _host_ as defined by usocket. The default is
    {usocket:*wildcard-host*}.
 
-   _port_—a local port number. Default is 8080.
+   _port_—a local port number. The default is 8080.
 
    _n-threads_—a positive _integer_ specifying the number of threads to
-   keep in the thread pool. Must be at least two. Default is 16.
+   keep in the thread pool. Must be at least two. The default is 16.
 
    _socket-backlog_—a positive _integer_ specifying the socket backlog
-   kept by usocket. Default is 32.
+   kept by usocket. The default is 32.
 
    *Description:*
 

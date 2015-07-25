@@ -76,7 +76,8 @@
 
    *Description:*
 
-   {uri-encode} returns an URI safe copy of _string_.
+   {uri-encode} returns an URI safe copy of _string_. Note that
+   {uri-encode} will *not* encode reserved characters.
 
    *See Also:*
 
@@ -153,11 +154,11 @@
 (defmacro respond-ok ((length type write-date) &body body)
   "*Arguments and Values:*
 
-   _length_—an _integer_.
+   _length_—a non-negative _integer_.
 
    _type_—a _list_ of two _strings_ designating a MIME type.
 
-   _write-date_—a date as _universal time_.
+   _write-date_—a _universal time_.
 
    _body_—_forms_ that print _length_ bytes to {*standard-output*}.
 
@@ -175,7 +176,7 @@
 (defun respond-moved-permanently (location)
   "*Arguments and Values:*
 
-   _location_—a _string_ denoting an URI.
+   _location_—a _string_ denoting a URI.
 
    *Description:*
 
