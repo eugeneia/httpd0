@@ -76,26 +76,16 @@
 		  (aref request-buffer pos)           ; X  CR
 		  (aref request-buffer (1- pos))))))) ; CR X
 
-(defun timeout-p (connection)
-  "Predicate to test if CONNECTION timed out."
-  (not (nth-value 1 (wait-for-input connection
-				    :timeout *request-timeout*
-				    :ready-only nil))))
-
-(defun receive-request (connection)
-  "Return request buffer received from CONNECTION with its input stream
-bound to *STANDARD-INPUT* or NIL if *REQUEST-SIZE* or *REQUEST-TIMEOUT*
-is exceeded."
+(defun receive-request ()
+  "Receive and return request buffer or NIL if either *REQUEST-SIZE* or
+*REQUEST-TIMEOUT* are exceeded."
   (let ((buffer (make-array *request-size*
 			    :element-type '(unsigned-byte 8))))
-    (loop for i from 0 to *request-size*
-       if (or (= *request-size* i)
-	      (timeout-p connection))
-       return nil
-       else do (let ((byte (read-byte *standard-input* nil 'eof)))
-		 (if (eq 'eof byte)
-		     (return-from receive-request (subseq buffer 0 i))
-		     (setf (aref buffer i) byte)))
+    (loop for i from 0 to (1- *request-size*)
+       do (let ((byte (read-byte *standard-input* nil 'eof)))
+            (if (eq 'eof byte)
+                (return-from receive-request (subseq buffer 0 i))
+                (setf (aref buffer i) byte)))
        when (request-complete-p buffer i)
        return (subseq buffer 0 (1+ i)))))
 
@@ -104,15 +94,15 @@ is exceeded."
   (handler-case (utf-8-bytes-to-string request-buffer)
     (utf-8-decoding-error () nil)))
 
-(defun read-request (connection)
-  "Return request from CONNECTION or NIL if its invalid or timed out."
-  (let ((request-buffer (receive-request connection)))
+(defun read-request ()
+  "Return request or NIL if its invalid or timed out."
+  (let ((request-buffer (receive-request)))
     (when request-buffer
       (request-buffer-to-string request-buffer))))
 
-(defun respond (connection responder)
-  "Respond to CONNECTION using RESPONDER."
-  (let ((request (read-request connection)))
+(defun respond (responder)
+  "Respond using RESPONDER."
+  (let ((request (read-request)))
     (when request
       (multiple-value-bind (*request-method*
 			    resource
@@ -135,11 +125,12 @@ is exceeded."
 THREAD-POOL."
   (let ((connection
 	 (socket-accept socket :element-type '(unsigned-byte 8))))
+    (setf (socket-option connection :receive-timeout) *request-timeout*)
     (enqueue-task thread-pool
       (handle-errors
        (let ((*standard-input* (socket-stream connection))
 	     (*standard-output* (socket-stream connection)))
-	 (unwind-protect (respond connection responder)
+	 (unwind-protect (respond responder)
 	   (socket-close connection)))))))
 
 
