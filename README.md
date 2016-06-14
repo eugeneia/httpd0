@@ -7,7 +7,7 @@ requests. *httpd0* is lightweight and reasonably fast. It can serve
 static files out of the box and its modular design allows for easy
 implementation of custom responders. In addition to the mandatory
 headers, httpd0 also supports the *Last-Modified* and *If-Modified-Since*
-headers. It's downwards compatible to HTTP/0.9 clients.
+headers. It’s downwards compatible to HTTP/0.9 clients.
 
 Things httpd0 does not support:
 
@@ -30,11 +30,11 @@ Current stable version is
 **Dependencies:**
 
 * [q-thread-pool](https://github.com/eugeneia/q-thread-pool)
-* [net-telent-date](https://github.com/eugeneia/net-telent-date)
-* [mpc](https://github.com/eugeneia/mpc)
+* [cl-date-time-parser](https://github.com/tkych/cl-date-time-parser)
+* [maxpc](https://github.com/eugeneia/maxpc)
 * [file-types](https://github.com/eugeneia/file-types)
-* [pretty-string](https://github.com/eugeneia/pretty-string)
 * [percent-encoding](https://github.com/llibra/percent-encoding)
 * [usocket](http://common-lisp.net/project/usocket/)
 * [trivial-utf-8](http://common-lisp.net/project/trivial-utf-8/)
 * [cl-fad](http://weitz.de/cl-fad/)
+* [uiop](http://www.cliki.net/UIOP)
