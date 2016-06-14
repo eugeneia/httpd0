@@ -25,7 +25,7 @@
 	       "usocket"
 	       "trivial-utf-8"
                "cl-date-time-parser"
-	       "mpc"
+	       "maxpc"
 	       "percent-encoding"
 	       "cl-fad"
 	       "file-types"
