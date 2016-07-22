@@ -29,5 +29,4 @@
 	       "percent-encoding"
 	       "cl-fad"
 	       "file-types"
-               "uiop"
-               "flexi-streams"))
+               "uiop"))

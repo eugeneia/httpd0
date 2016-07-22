@@ -113,8 +113,7 @@
 	 (=version)
 	 (%maybe (=if-modified-since))))
 
-(defun parse-request (stream)
-  "Parse request from STREAM and return request method, resource,
-   protocol version and if applicable the value of the IF-MODIFIED-SINCE
-   header."
-  (values-list (parse stream (=request))))
+(defun parse-request (request)
+  "Parse REQUEST and return request method, resource, protocol version
+  and if applicable the value of the IF-MODIFIED-SINCE header."
+  (values-list (parse request (=request))))
