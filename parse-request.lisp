@@ -65,8 +65,8 @@
 
 (defun ?endline ()
   "Parser for HTTP CRLF."
-  (%or (%and (?char #\Return)
-	     (?char #\Newline))
+  (%or (?list (?char #\Return)
+              (?char #\Newline))
        (?char #\Return)
        (?char #\Newline)
        (?end)))
