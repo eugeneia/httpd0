@@ -123,8 +123,7 @@
 (defun accept (socket responder thread-pool)
   "Accept connection from SOCKET and respond using RESPONDER in
 THREAD-POOL."
-  (let ((connection
-	 (socket-accept socket :element-type '(unsigned-byte 8))))
+  (let ((connection (socket-accept socket)))
     (setf (socket-option connection :receive-timeout) *request-timeout*)
     (enqueue-task thread-pool
       (handle-errors
@@ -133,12 +132,10 @@ THREAD-POOL."
 	 (unwind-protect (respond responder)
 	   (socket-close connection)))))))
 
-
 (defun make-server (host port socket-backlog responder thread-pool)
   "Make server listening on HOST and PORT with SOCKET-BACKLOG using
 RESPONDER in THREAD-POOL."
   (let ((socket (socket-listen host port
-			       :reuse-address t
 			       :backlog socket-backlog
 			       :element-type '(unsigned-byte 8))))
     (unwind-protect (loop do (handle-errors
