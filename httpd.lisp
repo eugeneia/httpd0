@@ -27,7 +27,6 @@
   (:use :cl
 	:q-thread-pool
 	:usocket
-	:trivial-utf-8
 	:httpd0.parse-request
 	:httpd0.responses
 	:httpd0.resource-responder)
@@ -52,68 +51,18 @@
    not be received within the specified amount of time are dropped by
    closing the connection.")
 
-(defparameter *return-code* (char-code #\Return)
-  "ASCII code for #\Return.")
-
-(defparameter *newline-code* (char-code #\Newline)
-  "ASCII code for #\Newline.")
-
-(defun request-complete-p (request-buffer pos)
-  "Predicate to test if REQUEST-BUFFER contains a complete request."
-  ;; WARNING: Most ridiculous piece of code ever...
-  (or (and (> pos 2)
-	   (= *newline-code*
-	      (aref request-buffer pos)         ; X  X  X  LF
-	      (aref request-buffer (- pos 2)))  ; X  LF X  X
-	   (= *return-code*
-	      (aref request-buffer (1- pos))    ; X  X  CR X
-	      (aref request-buffer (- pos 3)))) ; CR X  X  X
-      (and (> pos 0)
-	   (or (= *newline-code*
-		  (aref request-buffer pos)       ; X  LF
-		  (aref request-buffer (1- pos))) ; LF X
-	       (= *return-code*
-		  (aref request-buffer pos)           ; X  CR
-		  (aref request-buffer (1- pos))))))) ; CR X
-
-(defun receive-request ()
-  "Receive and return request buffer or NIL if either *REQUEST-SIZE* or
-*REQUEST-TIMEOUT* are exceeded."
-  (let ((buffer (make-array *request-size*
-			    :element-type '(unsigned-byte 8))))
-    (loop for i from 0 to (1- *request-size*)
-       do (let ((byte (read-byte *standard-input* nil 'eof)))
-            (if (eq 'eof byte)
-                (return-from receive-request (subseq buffer 0 i))
-                (setf (aref buffer i) byte)))
-       when (request-complete-p buffer i)
-       return (subseq buffer 0 (1+ i)))))
-
-(defun request-buffer-to-string (request-buffer)
-  "Convert REQUEST-BUFFER to string or return NIL if unable to."
-  (handler-case (utf-8-bytes-to-string request-buffer)
-    (utf-8-decoding-error () nil)))
-
-(defun read-request ()
-  "Return request or NIL if its invalid or timed out."
-  (let ((request-buffer (receive-request)))
-    (when request-buffer
-      (request-buffer-to-string request-buffer))))
-
 (defun respond (responder)
   "Respond using RESPONDER."
-  (let ((request (read-request)))
-    (when request
-      (multiple-value-bind (*request-method*
-			    resource
-			    *protocol-version*
-			    if-modified-since)
-	  (parse-request request)
-	(if (and *protocol-version* *request-method*)
-            (if resource
-                (funcall responder resource if-modified-since)
-                (respond-not-found))
-	    (respond-not-implemented))))))
+  (multiple-value-bind (*request-method*
+                        resource
+                        *protocol-version*
+                        if-modified-since)
+      (parse-request *standard-input* *request-size*)
+    (if (and *protocol-version* *request-method*)
+        (if resource
+            (funcall responder resource if-modified-since)
+            (respond-not-found))
+        (respond-not-implemented))))
 
 (defmacro handle-errors (&body body)
   "Handle errors in BODY."
@@ -123,8 +72,7 @@
 (defun accept (socket responder thread-pool)
   "Accept connection from SOCKET and respond using RESPONDER in
 THREAD-POOL."
-  (let ((connection
-	 (socket-accept socket :element-type '(unsigned-byte 8))))
+  (let ((connection (socket-accept socket :element-type '(unsigned-byte 8))))
     (setf (socket-option connection :receive-timeout) *request-timeout*)
     (enqueue-task thread-pool
       (handle-errors
