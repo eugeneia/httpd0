@@ -113,7 +113,9 @@
 	 (=version)
 	 (%maybe (=if-modified-since))))
 
-(defun parse-request (request)
+(defun parse-request (stream request-size)
   "Parse REQUEST and return request method, resource, protocol version
   and if applicable the value of the IF-MODIFIED-SINCE header."
-  (values-list (parse request (=request))))
+  (let ((maxpc.input.stream:*chunk-size* request-size)
+        (maxpc.input.stream:*bound* request-size))
+    (values-list (parse stream (=request)))))

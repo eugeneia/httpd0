@@ -25,9 +25,8 @@
     + [If-Modified-Since](http://www.w3.org/Protocols/HTTP/1.0/spec.html#If-Modified-Since)
     + httpd0.responses")
   (:use :cl
-	:q-thread-pool
-	:usocket
-	:trivial-utf-8
+	:ccl
+        :q-thread-pool
 	:httpd0.parse-request
 	:httpd0.responses
 	:httpd0.resource-responder)
@@ -42,78 +41,28 @@
 (defparameter *request-size* 512
   "*Description:*
 
-   Maximum size of a request in bytes. Requests exceeding {*request-size*}
-   are dropped by closing the connection.")
+   Maximum request size in characters. Requests exceeding {*request-size*} are
+   dropped by closing the connection.")
 
 (defparameter *request-timeout* 64
   "*Description:*
 
-   Timeout for clients to submit request in seconds. Requests that can
-   not be received within the specified amount of time are dropped by
-   closing the connection.")
-
-(defparameter *return-code* (char-code #\Return)
-  "ASCII code for #\Return.")
-
-(defparameter *newline-code* (char-code #\Newline)
-  "ASCII code for #\Newline.")
-
-(defun request-complete-p (request-buffer pos)
-  "Predicate to test if REQUEST-BUFFER contains a complete request."
-  ;; WARNING: Most ridiculous piece of code ever...
-  (or (and (> pos 2)
-	   (= *newline-code*
-	      (aref request-buffer pos)         ; X  X  X  LF
-	      (aref request-buffer (- pos 2)))  ; X  LF X  X
-	   (= *return-code*
-	      (aref request-buffer (1- pos))    ; X  X  CR X
-	      (aref request-buffer (- pos 3)))) ; CR X  X  X
-      (and (> pos 0)
-	   (or (= *newline-code*
-		  (aref request-buffer pos)       ; X  LF
-		  (aref request-buffer (1- pos))) ; LF X
-	       (= *return-code*
-		  (aref request-buffer pos)           ; X  CR
-		  (aref request-buffer (1- pos))))))) ; CR X
-
-(defun receive-request ()
-  "Receive and return request buffer or NIL if either *REQUEST-SIZE* or
-*REQUEST-TIMEOUT* are exceeded."
-  (let ((buffer (make-array *request-size*
-			    :element-type '(unsigned-byte 8))))
-    (loop for i from 0 to (1- *request-size*)
-       do (let ((byte (read-byte *standard-input* nil 'eof)))
-            (if (eq 'eof byte)
-                (return-from receive-request (subseq buffer 0 i))
-                (setf (aref buffer i) byte)))
-       when (request-complete-p buffer i)
-       return (subseq buffer 0 (1+ i)))))
-
-(defun request-buffer-to-string (request-buffer)
-  "Convert REQUEST-BUFFER to string or return NIL if unable to."
-  (handler-case (utf-8-bytes-to-string request-buffer)
-    (utf-8-decoding-error () nil)))
-
-(defun read-request ()
-  "Return request or NIL if its invalid or timed out."
-  (let ((request-buffer (receive-request)))
-    (when request-buffer
-      (request-buffer-to-string request-buffer))))
+   I/O timeout in seconds. Requests that are stalled by an I/O operation with
+   the client for more than the specified duration are dropped by closing the
+   connection.")
 
 (defun respond (responder)
   "Respond using RESPONDER."
-  (let ((request (read-request)))
-    (when request
-      (multiple-value-bind (*request-method*
-			    resource
-			    *protocol-version*
-			    if-modified-since)
-	  (parse-request request)
-	(if (and *protocol-version* *request-method*)
-            (if resource
-                (funcall responder resource if-modified-since)
-                (respond-not-found))
-	    (respond-not-implemented))))))
+  (multiple-value-bind (*request-method*
+                        resource
+                        *protocol-version*
+                        if-modified-since)
+      (parse-request *standard-input* *request-size*)
+    (if (and *protocol-version* *request-method*)
+        (if resource
+            (funcall responder resource if-modified-since)
+            (respond-not-found))
+        (respond-not-implemented))))
 
 (defmacro handle-errors (&body body)
   "Handle errors in BODY."
@@ -123,29 +72,29 @@
 (defun accept (socket responder thread-pool)
   "Accept connection from SOCKET and respond using RESPONDER in
 THREAD-POOL."
-  (let ((connection
-	 (socket-accept socket :element-type '(unsigned-byte 8))))
-    (setf (socket-option connection :receive-timeout) *request-timeout*)
+  (let ((connection (accept-connection socket)))
     (enqueue-task thread-pool
       (handle-errors
-       (let ((*standard-input* (socket-stream connection))
-	     (*standard-output* (socket-stream connection)))
-	 (unwind-protect (respond responder)
-	   (socket-close connection)))))))
-
+        (let ((*standard-input* connection)
+              (*standard-output* connection))
+          (unwind-protect (respond responder)
+            (close connection)))))))
 
 (defun make-server (host port socket-backlog responder thread-pool)
   "Make server listening on HOST and PORT with SOCKET-BACKLOG using
 RESPONDER in THREAD-POOL."
-  (let ((socket (socket-listen host port
-			       :reuse-address t
-			       :backlog socket-backlog
-			       :element-type '(unsigned-byte 8))))
-    (unwind-protect (loop do (handle-errors
-                              (accept socket responder thread-pool)))
-      (socket-close socket))))
+  (let ((socket (make-socket :connect :passive
+                             :local-host host
+                             :local-port port
+                             :backlog socket-backlog
+                             :external-format :utf-8
+                             :input-timeout *request-timeout*
+                             :output-timeout *request-timeout*)))
+    (unwind-protect
+         (loop do (handle-errors (accept socket responder thread-pool)))
+      (close socket))))
 
-(defun make-httpd (responder &key (host *wildcard-host*)
+(defun make-httpd (responder &key host
                                   (port 8080)
 			          (n-threads 16)
 		                  (socket-backlog 32))

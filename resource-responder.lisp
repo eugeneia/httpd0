@@ -48,7 +48,7 @@
   "Serve file at PATH with WRITE-DATE."
   (with-open-file (in path :element-type '(unsigned-byte 8))
     (respond-ok ((file-length in) (file-mime path) write-date)
-      (copy-stream in *standard-output*))))
+      (copy-stream in *standard-output* nil))))
 
 (defun directory-listing (path)
   "Create directory listing for PATH."
