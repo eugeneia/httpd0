@@ -107,7 +107,7 @@
 
 (defmacro response-body (&body body)
   "Execute BODY only when *REQUEST-METHOD* is :GET."
-  `(when (eq :get *request-method*)
+  `(unless (eq :head *request-method*)
      ,@body))
 
 (defun mime-string (type subtype)
