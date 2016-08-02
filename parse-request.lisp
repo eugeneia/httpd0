@@ -19,8 +19,8 @@
 
 (defun =method-token (symbol)
   "Parse method prefix for SYMBOL."
-  (=token (?list (?string (symbol-name symbol) nil)
-                 (?char #\Space))
+  (=token (?seq (?string (symbol-name symbol) nil)
+                (?char #\Space))
 	  symbol))
 
 (defun =method ()
@@ -30,8 +30,8 @@
 
 (defun ?host ()
   "Parser for resource host."
-  (?list (?string "http://" nil)
-         (%some (?not (%or (?whitespace) (?char #\/))))))
+  (?seq (?string "http://" nil)
+        (%some (?not (%or (?whitespace) (?char #\/))))))
 
 (defun =resource-path ()
   "Paser for resource path."
@@ -65,22 +65,21 @@
 
 (defun ?endline ()
   "Parser for HTTP CRLF."
-  (%or (?list (?char #\Return)
-              (?char #\Newline))
+  (%or (?seq (?char #\Return) (?char #\Newline))
        (?char #\Return)
        (?char #\Newline)
        (?end)))
 
 (defun ?http-version ()
   "Parse for HTTP version strings."
-  (?list (?string  "HTTP/" nil)
-         (%some (?digit))
-         (?char #\.)
-         (%some (?digit))))
+  (?seq (?string  "HTTP/" nil)
+        (%some (?digit))
+        (?char #\.)
+        (%some (?digit))))
 
 (defun =version ()
   "Parser for request version."
-  (%or (=token (?list (?http-version) (?endline))
+  (%or (=token (?seq (?http-version) (?endline))
 	       :1.0)
        (=token (?endline)
 	       :0.9)))
