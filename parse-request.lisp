@@ -4,9 +4,9 @@
   (:documentation
    "Parse HTTP/1.0 GET and HEAD requests.")
   (:use :cl
-	:mpc
-	:mpc.characters
-	:mpc.numerals
+	:maxpc
+	:maxpc.char
+	:maxpc.digit
 	:percent-encoding
         :cl-date-time-parser)
   (:export :parse-request))
@@ -15,29 +15,29 @@
 
 (defun =token (token object)
   "Parse TOKEN as OBJECT."
-  (=and token (=result object)))
+  (=transform token (constantly object)))
 
 (defun =method-token (symbol)
   "Parse method prefix for SYMBOL."
-  (=token (=and (=string (symbol-name symbol) nil)
-		(=character #\Space))
+  (=token (?seq (?string (symbol-name symbol) nil)
+                (?char #\Space))
 	  symbol))
 
 (defun =method ()
   "Parser for request method."
-  (=or (=method-token :get)
+  (%or (=method-token :get)
        (=method-token :head)))
 
-(defun =host ()
+(defun ?host ()
   "Parser for resource host."
-  (=and (=string "http://" nil)
-	(=one-or-more (=not (=or (=whitespace)
-				 (=character #\/))))))
+  (?seq (?string "http://" nil)
+        (%some (?not (%or (?whitespace) (?char #\/))))))
 
 (defun =resource-path ()
   "Paser for resource path."
-  (=prog1 (=string-of (=not (=whitespace)))
-	  (=maybe (=character #\Space))))
+  (=destructure (path _)
+      (=list (=subseq (%any (?not (?whitespace))))
+             (%maybe (?char #\Space)))))
 
 (defun strip-query (resource-string)
   "Strip query from RESOURCE-STRING."
@@ -59,61 +59,62 @@
 
 (defun =resource ()
   "Parser for requested resource."
-  (=let* ((_ (=maybe (=host)))
-          (resource (=resource-path)))
-    (=result (decode-resource resource))))
+  (=destructure (_ resource)
+      (=list (%maybe (?host)) (=resource-path))
+    (decode-resource resource)))
 
-(defun =endline ()
+(defun ?endline ()
   "Parser for HTTP CRLF."
-  (=or (=and (=character #\Return)
-	     (=character #\Newline))
-       (=character #\Return)
-       (=character #\Newline)
-       (=end-of-input)))
+  (%or (?seq (?char #\Return) (?char #\Newline))
+       (?char #\Return)
+       (?char #\Newline)
+       (?end)))
 
-(defun =http-version ()
+(defun ?http-version ()
   "Parse for HTTP version strings."
-  (let ((number (=one-or-more (=digit))))
-    (=and (=string "HTTP/" nil)
-	  number
-	  (=character #\.)
-	  number)))
+  (?seq (?string  "HTTP/" nil)
+        (%some (?digit))
+        (?char #\.)
+        (%some (?digit))))
 
 (defun =version ()
   "Parser for request version."
-  (=or (=token (=and (=http-version)
-		     (=endline))
+  (%or (=token (?seq (?http-version) (?endline))
 	       :1.0)
-       (=token (=endline)
+       (=token (?endline)
 	       :0.9)))
 
 (defun =header ()
-  "Parse for HTTP header."
-  (let ((seperator (=character #\:)))
-    (=list (=prog1 (=string-of (=not (=or (=whitespace)
-					  seperator)))
-		   seperator
-		   (=zero-or-more (=whitespace)))
-	   (=prog1 (=string-of (=not (=endline)))
-		   (=endline)))))
+  "Parser for HTTP header."
+  (let ((separator (?char #\:)))
+    (=destructure (key _ _ value _)
+        (=list (=subseq (%some (?not (%or (?whitespace) separator))))
+               separator
+               (%any (%diff (?whitespace) (?newline) (?char #\Return)))
+               (=subseq (%any (?not (?endline))))
+               (?endline))
+      (cons key value))))
 
 (defun =if-modified-since ()
   "Parser for IF-MODIFIED-SINCE header."
-  (=let* ((headers (=zero-or-more (=header))))
-    (=result (let ((if-modified-since
-                    (cadr (assoc "IF-MODIFIED-SINCE" headers
-                                 :test #'string-equal))))
-               (and if-modified-since
-                    (parse-date-time if-modified-since))))))
+  (=transform (%any (=header))
+              (lambda (headers)
+                (let ((if-modified-since
+                       (cdr (assoc "IF-MODIFIED-SINCE" headers
+                                   :test #'string-equal))))
+                  (and if-modified-since
+                       (parse-date-time if-modified-since))))))
 
 (defun =request ()
   "Parser for request."
   (=list (=method)
 	 (=resource)
 	 (=version)
-	 (=maybe (=if-modified-since))))
+	 (%maybe (=if-modified-since))))
 
-(defun parse-request (request)
+(defun parse-request (stream request-size)
   "Parse REQUEST and return request method, resource, protocol version
   and if applicable the value of the IF-MODIFIED-SINCE header."
-  (values-list (run (=request) request)))
+  (let ((maxpc.input.stream:*chunk-size* request-size)
+        (maxpc.input.stream:*bound* request-size))
+    (values-list (parse stream (=request)))))

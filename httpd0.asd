@@ -10,7 +10,7 @@
 (defsystem httpd0
   :description
   "HTTP/1.0 GET/HEAD server."
-  :version "1.1"
+  :version "1.2"
   :license "GNU AGPL"
   :author "Max Rottenkolber <max@mr.gy>"
   :components ((:file "parse-request")
@@ -22,10 +22,9 @@
 				   "parse-request"
 				   "resource-responder")))
   :depends-on ("q-thread-pool"
-	       "usocket"
 	       "trivial-utf-8"
                "cl-date-time-parser"
-	       "mpc"
+	       "maxpc"
 	       "percent-encoding"
 	       "cl-fad"
 	       "file-types"

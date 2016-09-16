@@ -35,10 +35,7 @@
    can be either {:get} or {:head} indicating a GET or HEAD request
    respectively.")
 
-(defparameter *utf-8-text-mime* '("text" "plain; charset=utf-8")
-  "Mime type for plain text.")
-
-(defparameter *text-mime* *utf-8-text-mime*
+(defparameter *text-mime* '("text" "plain; charset=utf-8")
   "*Description:*
 
    {*text-mime*} is bound to a _list_ of two _strings_ that designates a
@@ -110,7 +107,7 @@
 
 (defmacro response-body (&body body)
   "Execute BODY only when *REQUEST-METHOD* is :GET."
-  `(when (eq :get *request-method*)
+  `(unless (eq :head *request-method*)
      ,@body))
 
 (defun mime-string (type subtype)
@@ -183,7 +180,7 @@
    {respond-moved-permanently} responds with HTTP status
    {:moved-permanently} to _location_."
   (let ((message (string-to-utf-8-bytes
-                  (format nil "Moved permanently to ~a .~%" location))))
+                  (format nil "Moved permanently to: ~a~%" location))))
     (respond :moved-permanently
              (headers :length (length message)
                       :location (uri-encode location)))
