@@ -19,9 +19,9 @@ specification.
  (destroy-httpd *httpd*)
  #
 
- {make-httpd} can be configured by supplying keyword parameters. The
- parameters {:host} and {:port} control where the underlying socket
- listens, they accept values valid to USOCKET¹.
+ {make-httpd} can be configured by supplying keyword parameters. The parameters
+ {:host} and {:port} specify on which host address the underlying socket will
+ listens.
 
  The special variables {*request-timeout*} and {*request-size*} control
  the maximum amount of time waited for a request to be sent and the
@@ -29,16 +29,15 @@ specification.
  variable {httpd0.responses:*text-mime*} controls the _MIME type_ of
  error and directory listing responses.
 
- The MIME type of individual files is determined by file-types². Consult
- its respective documentation on how to extend the file extension
- database.
+ The MIME type of individual files is determined by {file-types}¹. Consult its
+ respective documentation on how to extend the file extension database.
 
 >
 
 
 < httpd0 concurrency
 
- httpd0's concurrency model is based on a _thread pool_³. The
+ httpd0's concurrency model is based on a _thread pool_². The
  {:n-threads} keyword parameter to {make-httpd} controls the number of
  threads used for responding to requests. On the socket level, the
  keyword parameter {:socket-backlog} to {make-httpd} sets the packet
@@ -57,7 +56,7 @@ specification.
  valid request. It has to accept two arguments, {resource} and
  {if-modified-since}. The {resource} argument will be a _pathname_
  representing the resource path of the request while {if-modified-since}
- will be the parsed date specified in the requests' {If-Modified-Since}⁴
+ will be the parsed date specified in the requests' {If-Modified-Since}³
  header or {nil} if none was specified. The {resource} argument will
  always be a relative pathname, beware that its {pathname-directory} may
  contain {:up}.
@@ -119,8 +118,7 @@ specification.
 
 >
 
-+ 1. [USOCKET](http://common-lisp.net/project/usocket/)
-+ 2. [file-types](/software/file-types/)
-+ 3. [q-thread-pool](/software/q-thread-pool/)
-+ 4. [If-Modified-Since](http://www.w3.org/Protocols/HTTP/1.0/spec.html#If-Modified-Since)
++ 1. [file-types](/software/file-types/)
++ 2. [q-thread-pool](/software/q-thread-pool/)
++ 3. [If-Modified-Since](http://www.w3.org/Protocols/HTTP/1.0/spec.html#If-Modified-Since)
 

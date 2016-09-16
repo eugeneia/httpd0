@@ -102,25 +102,21 @@ RESPONDER in THREAD-POOL."
 
    _responder_—a _responder function_.
 
-   _host_—a _host_ as defined by usocket. The default is
-   {usocket:*wildcard-host*}.
+   _host_—the _host address_ to listen on as a _string_. The default is the
+   wildcard address.
 
    _port_—a local port number. The default is 8080.
 
    _n-threads_—a positive _integer_ specifying the number of threads to
    keep in the thread pool. Must be at least two. The default is 16.
 
-   _socket-backlog_—a positive _integer_ specifying the socket backlog
-   kept by usocket. The default is 32.
+   _socket-backlog_—a positive _integer_ specifying the socket _backlog_. The
+   default is 32.
 
    *Description:*
 
    {make-httpd} creates a httpd0 server instance with _responder_ that
-   listens on the specified _host_ and _port_.
-
-   *See Also:*
-
-   + [usocket](https://common-lisp.net/project/usocket/)"
+   listens on the specified _host_ and _port_."
   (let ((thread-pool (make-thread-pool n-threads (* 4 n-threads))))
     (enqueue-task thread-pool
       (make-server host port socket-backlog responder thread-pool))

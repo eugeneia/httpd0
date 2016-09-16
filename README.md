@@ -2,12 +2,12 @@
 
 **Description:**
 
-A simple but effective HTTP/1.0 server with support for GET and HEAD
-requests. *httpd0* is lightweight and reasonably fast. It can serve
-static files out of the box and its modular design allows for easy
-implementation of custom responders. In addition to the mandatory
-headers, httpd0 also supports the *Last-Modified* and *If-Modified-Since*
-headers. It’s downwards compatible to HTTP/0.9 clients.
+A simple but effective HTTP/1.0 server for Clozure Common Lisp with support for
+GET and HEAD requests. *httpd0* is lightweight and reasonably fast. It can
+serve static files out of the box and its modular design allows for easy
+implementation of custom responders. In addition to the mandatory headers,
+httpd0 also supports the *Last-Modified* and *If-Modified-Since* headers. It’s
+downwards compatible to HTTP/0.9 clients.
 
 Things httpd0 does not support:
 
@@ -20,7 +20,7 @@ Things httpd0 does not support:
 * HTTP/1.1
 
 Current stable version is
-[1.1](https://github.com/eugeneia/httpd0/releases/tag/1.1).
+[1.2](https://github.com/eugeneia/httpd0/releases/tag/v1.2).
 
 **Documentation:**
 
@@ -34,7 +34,6 @@ Current stable version is
 * [maxpc](https://github.com/eugeneia/maxpc)
 * [file-types](https://github.com/eugeneia/file-types)
 * [percent-encoding](https://github.com/llibra/percent-encoding)
-* [usocket](http://common-lisp.net/project/usocket/)
 * [trivial-utf-8](http://common-lisp.net/project/trivial-utf-8/)
 * [cl-fad](http://weitz.de/cl-fad/)
 * [uiop](http://www.cliki.net/UIOP)
