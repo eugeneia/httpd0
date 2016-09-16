@@ -1,1 +1,4 @@
++ {httpd0.resource-responder} can only correctly handle symbolic links in
+  directory listings on platforms on which {cl-fad} supports the
+  {follow-symlinks} keyword parameter to {list-directory}.
 + Requesting large files -> loose connection?

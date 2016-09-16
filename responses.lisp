@@ -1,10 +1,11 @@
 ;;;; HTTPD0 responses.
 
 (defpackage httpd0.responses
-  (:documentation "HTTPD0 responses.")
+  (:documentation
+   "Toolkit for writing _responder functions_. Includes common responses
+    and generic response templates.")
   (:use :cl
 	:trivial-utf-8
-	:net.telent.date
         :percent-encoding)
   (:export :*protocol-version*
 	   :*request-method*
@@ -19,16 +20,27 @@
 (in-package :httpd0.responses)
 
 (defvar *protocol-version* nil
-  "Protocol version may be :0.9 or :1.0.")
+  "*Description:*
+
+   {*protocol-version*} is bound to a _symbol_ indicating the protocol
+   version is use when calling a _responder function_.
+   {*protocol-version*} can be either {:0.9} or {:1.0} to indicate
+   HTTP/0.9 or HTTP/1.0 respectively.")
 
 (defvar *request-method* nil
-  "Request method may be :GET or :HEAD.")
+  "*Description:*
 
-(defparameter *utf-8-text-mime* '("text" "plain; charset=utf-8")
-  "Mime type for plain text.")
+   {*request-method*} is bound to a _symbol_ indicating the request
+   method served when calling a _responder function_. {*request-method*}
+   can be either {:get} or {:head} indicating a GET or HEAD request
+   respectively.")
 
-(defparameter *text-mime* *utf-8-text-mime*
-  "Mime type for plain text files.")
+(defparameter *text-mime* '("text" "plain; charset=utf-8")
+  "*Description:*
+
+   {*text-mime*} is bound to a _list_ of two _strings_ that designates a
+   MIME type, to which responses for the {text/plain} MIME type will be
+   upgraded to.")
 
 (defparameter *not-found-message*
   (string-to-utf-8-bytes (format nil "?~%Not found~%"))
@@ -55,7 +67,18 @@
       (reservedp c)))
 
 (defun uri-encode (string)
-  "URI encode STRING."
+  "*Arguments and Values:*
+
+   _string_—a _string_.
+
+   *Description:*
+
+   {uri-encode} returns an URI safe copy of _string_. Note that
+   {uri-encode} will *not* encode reserved characters.
+
+   *See Also:*
+
+   + [percent-encoding](http://tools.ietf.org/html/rfc3986#section-2.1)"
   (encode string :test 'uri-encode-p :www-form nil :encoding :utf-8))
 
 (defun status-string (status)
@@ -84,7 +107,7 @@
 
 (defmacro response-body (&body body)
   "Execute BODY only when *REQUEST-METHOD* is :GET."
-  `(when (eq :get *request-method*)
+  `(unless (eq :head *request-method*)
      ,@body))
 
 (defun mime-string (type subtype)
@@ -97,6 +120,18 @@
       (destructuring-bind (type subtype) *text-mime*
         (mime-string type subtype))
       (mime-string type subtype)))
+
+(let ((days #("Mon" "Tue" "Wed" "Thu" "Fri" "Sat" "Sun"))
+      (months #("Jan" "Feb" "Mar" "Apr" "May" "Jun"
+                "Jul" "Aug" "Sep" "Oct" "Nov" "Dec")))
+  (defun universal-time-to-http-date (universal-time)
+    (multiple-value-bind (second minute hour date month year day
+                          daylight-p zone)
+        (decode-universal-time universal-time 0) ; Always GMT
+      (declare (ignore daylight-p zone))
+      (format nil "~a, ~d ~a ~d ~2,'0d:~2,'0d:~2,'0d GMT"
+              (aref days day) date (aref months (1- month)) year
+              hour minute second))))
 
 (defun headers (&key length type (date (get-universal-time)) write-date
                   location)
@@ -114,8 +149,21 @@
         `((:location ,location)))))
 
 (defmacro respond-ok ((length type write-date) &body body)
-  "Respond with BODY as entity body, described by LENGTH, TYPE and
-WRITE-DATE."
+  "*Arguments and Values:*
+
+   _length_—a non-negative _integer_.
+
+   _type_—a _list_ of two _strings_ designating a MIME type.
+
+   _write-date_—a _universal time_.
+
+   _body_—_forms_ that print _length_ bytes to {*standard-output*}.
+
+   *Description:*
+
+   {respond-ok} responds with HTTP status {:ok} for an entity of _length_
+   bytes with MIME _type_ and _write-date_. The _body_ forms must write
+   the contents of the HTTP entity to {*standard-output*}."
   `(progn (respond :ok
 		   (headers :length ,length
 			    :type ,type
@@ -123,27 +171,52 @@ WRITE-DATE."
 	  (response-body ,@body)))
 
 (defun respond-moved-permanently (location)
-  "Return with status :MOVED-PERMANENTLY (to LOCATION)."
+  "*Arguments and Values:*
+
+   _location_—a _string_ denoting a URI.
+
+   *Description:*
+
+   {respond-moved-permanently} responds with HTTP status
+   {:moved-permanently} to _location_."
   (let ((message (string-to-utf-8-bytes
-                  (format nil "Moved permanently to ~a .~%" location))))
+                  (format nil "Moved permanently to: ~a~%" location))))
     (respond :moved-permanently
              (headers :length (length message)
                       :location (uri-encode location)))
     (response-body (write-sequence message *standard-output*))))
 
 (defun respond-not-modified ()
-  "Respond with status :NOT-MODIFIED."
+  "*Arguments and Values:*
+
+   None.
+
+   *Description:*
+
+   {respond-not-modified} responds with HTTP status {:not-modified}."
   (respond :not-modified (headers)))
 
 (defun respond-not-found ()
-  "Respond with status :NOT-FOUND."
+  "*Arguments and Values:*
+
+   None.
+
+   *Description:*
+
+   {respond-not-found} responds with HTTP status {:not-found}."
   (respond :not-found
 	   (headers :length *not-found-message-length*
 		    :type *text-mime*))
   (response-body (write-sequence *not-found-message* *standard-output*)))
 
 (defun respond-not-implemented ()
-  "Respond with status :NOT-IMPLEMENTED."
+  "*Arguments and Values:*
+
+   None.
+
+   *Description:*
+
+   {respond-not-implemented} responds with HTTP status {:not-implemented}."
   (respond :not-implemented
 	   (headers :length *not-implemented-message-length*
 		    :type *text-mime*

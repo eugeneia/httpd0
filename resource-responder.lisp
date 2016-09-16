@@ -4,11 +4,11 @@
   (:documentation
    "HTTPD0 resource responder.")
   (:use :cl
-	:cl-fad
-	:trivial-utf-8
-	:file-types
-        :pretty-string
-	:httpd0.responses)
+        :cl-fad
+        :trivial-utf-8
+        :file-types
+        :httpd0.responses)
+  (:import-from :uiop :native-namestring)
   (:export :make-resource-responder))
 
 (in-package :httpd0.resource-responder)
@@ -48,13 +48,13 @@
   "Serve file at PATH with WRITE-DATE."
   (with-open-file (in path :element-type '(unsigned-byte 8))
     (respond-ok ((file-length in) (file-mime path) write-date)
-      (copy-stream in *standard-output*))))
+      (copy-stream in *standard-output* nil))))
 
 (defun directory-listing (path)
   "Create directory listing for PATH."
   (string-to-utf-8-bytes
    (with-output-to-string (out)
-     (dolist (entry (list-directory path))
+     (dolist (entry (list-directory path :follow-symlinks nil))
        (format out "~a~%" (entry-name entry))))))
 
 (defun serve-directory (path write-date)
@@ -75,7 +75,14 @@
             (serve-file resource write-date)))))
 
 (defun make-resource-responder (root)
-  "Return resource responder for ROOT."
+  "*Arguments and Values:*
+
+   _root_—a _directory pathname_.
+
+   *Description:*
+
+   {make-resource-responder} returns a _responder function_ that serves
+   the files under _root_."
   (lambda (resource parameters if-modified-since)
     (declare (ignore parameters))
     (multiple-value-bind (status path)

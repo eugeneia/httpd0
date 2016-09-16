@@ -4,44 +4,43 @@
   (:documentation
    "Parse HTTP/1.0 GET and HEAD requests.")
   (:use :cl
-	:mpc
-	:mpc.characters
-	:mpc.numerals
+	:maxpc
+	:maxpc.char
+	:maxpc.digit
 	:percent-encoding
-	:net.telent.date)
+        :cl-date-time-parser)
   (:export :parse-request))
 
 (in-package :httpd0.parse-request)
 
 (defun =token (token object)
   "Parse TOKEN as OBJECT."
-  (=and token (=result object)))
+  (=transform token (constantly object)))
 
 (defun =method-token (symbol)
   "Parse method prefix for SYMBOL."
-  (=token (=and (=string (symbol-name symbol) nil)
-		(=character #\Space))
+  (=token (?seq (?string (symbol-name symbol) nil)
+                (?char #\Space))
 	  symbol))
 
 (defun =method ()
   "Parser for request method."
-  (=or (=method-token :get)
+  (%or (=method-token :get)
        (=method-token :head)))
 
-(defun =host ()
+(defun ?host ()
   "Parser for resource host."
-  (=and (=string "http://" nil)
-	(=one-or-more (=not (=or (=whitespace)
-				 (=character #\/))))))
+  (?seq (?string "http://" nil)
+        (%some (?not (%or (?whitespace) (?char #\/))))))
 
-(defun =query-delimiter ()
+(defun ?query-delimiter ()
   "Parser for request query parameters delimiter."
-  (=character #\?))
+  (?char #\?))
 
 (defun =resource-path ()
   "Paser for resource path."
-  (=string-of (=not (=or (=whitespace)
-                         (=query-delimiter)))))
+  (=subseq (%any (?not (%or (?whitespace)
+                            (?query-delimiter))))))
 
 (defun strip-root (resource-string)
   "Strip root from RESOURCE-STRING."
@@ -58,90 +57,95 @@
 
 (defun =resource ()
   "Parser for requested resource."
-  (=let* ((_ (=maybe (=host)))
-          (resource (=resource-path))
-          (_ (=maybe (=character #\Space))))
-    (=result (decode-resource resource))))
+  (=destructure (_ resource _)
+      (=list (%maybe (?host))
+             (=resource-path)
+             (%maybe (?char #\Space)))
+    (decode-resource resource)))
 
 (defun =parameter ()
   "Parser for query parameter."
-  (=when (=not (=whitespace)) ; Terminated by whitespace.
-         (=let* (
-                 ;; KEY is is a string terminated by #\&, #\= or
-                 ;; whitespace.
-                 (key (=string-of (=not (=or (=one-of '(#\& #\=))
-                                             (=whitespace)))))
-                 ;; VALUE is optional, it can be either #\= followed by a
-                 ;; string terminated by #\& or whitespace, just #\= by
-                 ;; itself or nothing at all.
-                 (value (=or
-                         ;; VALUE will be the string after #\=.
-                         (=and (=character #\=)
-                               (=string-of (=not (=or (=character #\&)
-                                                      (=whitespace)))))
-                         ;; VALUE will be NIL.
-                         (=maybe (=and (=character #\=)
-                                       (=result nil)))))
-                 ;; Consume terminating #\& if present.
-                 (_ (=maybe (=character #\&))))
-           ;; Return KEY and VALUE as a cons.
-           (=result (cons key value)))))
+  (=destructure (key value _)
+      (=list
+       ;; KEY is is a string terminated by #\&, #\= or whitespace.
+       (=subseq (%some (?not (%or (?test ('member '(#\& #\=)))
+                                  (?whitespace)))))
+       ;; VALUE is optional, it can be either #\= followed by a string
+       ;; terminated by #\& or whitespace, just #\= by itself or nothing at
+       ;; all.
+       (%or
+        ;; VALUE will be the string after #\=.
+        (=destructure (_ value)
+            (=list (?char #\=)
+                   (=subseq (%some (?not (%or (?char #\&)
+                                              (?whitespace)))))))
+        ;; VALUE will be NIL.
+        (%maybe (?char #\=)))
+       ;; Consume terminating #\& if present.
+       (_ (%maybe (?char #\&))))
+    ;; Return KEY and VALUE as a cons.
+    (cons key value)))
 
 (defun =parameters ()
   "Parser for query parameters."
-  (=prog2 (=query-delimiter)
-          (=zero-or-more (=parameter)) ; Assoc-list of parameters.
-          (=maybe (=character #\Space))))
+  (=destructure (_ parameters _)
+      (=list (?query-delimiter)
+             (%some (=parameter)) ; Assoc-list of parameters.
+             (%maybe (?char #\Space)))))
 
-(defun =endline ()
+(defun ?endline ()
   "Parser for HTTP CRLF."
-  (=or (=and (=character #\Return)
-	     (=character #\Newline))
-       (=character #\Return)
-       (=character #\Newline)
-       (=end-of-input)))
+  (%or (?seq (?char #\Return) (?char #\Newline))
+       (?char #\Return)
+       (?char #\Newline)
+       (?end)))
 
-(defun =http-version ()
+(defun ?http-version ()
   "Parse for HTTP version strings."
-  (let ((number (=one-or-more (=digit))))
-    (=and (=string "HTTP/" nil)
-	  number
-	  (=character #\.)
-	  number)))
+  (?seq (?string  "HTTP/" nil)
+        (%some (?digit))
+        (?char #\.)
+        (%some (?digit))))
 
 (defun =version ()
   "Parser for request version."
-  (=or (=token (=and (=http-version)
-		     (=endline))
+  (%or (=token (?seq (?http-version) (?endline))
 	       :1.0)
-       (=token (=endline)
+       (=token (?endline)
 	       :0.9)))
 
 (defun =header ()
-  "Parse for HTTP header."
-  (let ((seperator (=character #\:)))
-    (=list (=prog1 (=string-of (=not (=or (=whitespace)
-					  seperator)))
-		   seperator
-		   (=zero-or-more (=whitespace)))
-	   (=prog1 (=string-of (=not (=endline)))
-		   (=endline)))))
+  "Parser for HTTP header."
+  (let ((separator (?char #\:)))
+    (=destructure (key _ _ value _)
+        (=list (=subseq (%some (?not (%or (?whitespace) separator))))
+               separator
+               (%any (%diff (?whitespace) (?newline) (?char #\Return)))
+               (=subseq (%any (?not (?endline))))
+               (?endline))
+      (cons key value))))
 
 (defun =if-modified-since ()
   "Parser for IF-MODIFIED-SINCE header."
-  (=let* ((headers (=zero-or-more (=header))))
-    (=result (parse-time (cadr (assoc "IF-MODIFIED-SINCE" headers
-                                      :test #'string-equal))))))
+  (=transform (%any (=header))
+              (lambda (headers)
+                (let ((if-modified-since
+                       (cdr (assoc "IF-MODIFIED-SINCE" headers
+                                   :test #'string-equal))))
+                  (and if-modified-since
+                       (parse-date-time if-modified-since))))))
 
 (defun =request ()
   "Parser for request."
   (=list (=method)
 	 (=resource)
-         (=maybe (=parameters))
+         (%maybe (=parameters))
 	 (=version)
-	 (=maybe (=if-modified-since))))
+	 (%maybe (=if-modified-since))))
 
-(defun parse-request (request)
+(defun parse-request (stream request-size)
   "Parse REQUEST and return request method, resource, protocol version
   and if applicable the value of the IF-MODIFIED-SINCE header."
-  (values-list (run (=request) request)))
+  (let ((maxpc.input.stream:*chunk-size* request-size)
+        (maxpc.input.stream:*bound* request-size))
+    (values-list (parse stream (=request)))))
