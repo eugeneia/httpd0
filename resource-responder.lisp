@@ -83,10 +83,12 @@
 
    {make-resource-responder} returns a _responder function_ that serves
    the files under _root_."
-  (lambda (resource if-modified-since)
-    (multiple-value-bind (status path)
-        (locate-resource resource root)
-      (case status
-        (:ok (serve path if-modified-since))
-        (:redirect (respond-moved-permanently (native-namestring path)))
-        (otherwise (respond-not-found))))))
+  (lambda (resource headers)
+    (if (eq *request-method* :post)
+        (respond-not-implemented)
+        (multiple-value-bind (status path)
+            (locate-resource resource root)
+          (case status
+            (:ok (serve path (if-modified-since headers)))
+            (:redirect (respond-moved-permanently (native-namestring path)))
+            (otherwise (respond-not-found)))))))

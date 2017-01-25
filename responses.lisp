@@ -5,11 +5,14 @@
    "Toolkit for writing _responder functions_. Includes common responses
     and generic response templates.")
   (:use :cl
+        :httpd0.headers
 	:trivial-utf-8
         :percent-encoding)
   (:export :*protocol-version*
 	   :*request-method*
 	   :*text-mime*
+           :if-modified-since
+           :content-length
            :uri-encode
 	   :respond-ok
            :respond-moved-permanently
@@ -32,8 +35,8 @@
 
    {*request-method*} is bound to a _symbol_ indicating the request
    method served when calling a _responder function_. {*request-method*}
-   can be either {:get} or {:head} indicating a GET or HEAD request
-   respectively.")
+   can be either {:get}, {:head}, or {:post} indicating a GET, HEAD, or
+   POST request respectively.")
 
 (defparameter *text-mime* '("text" "plain; charset=utf-8")
   "*Description:*
@@ -106,7 +109,7 @@
   (write-utf-8-bytes *return-newline* *standard-output*))
 
 (defmacro response-body (&body body)
-  "Execute BODY only when *REQUEST-METHOD* is :GET."
+  "Execute BODY unless *REQUEST-METHOD* is :HEAD."
   `(unless (eq :head *request-method*)
      ,@body))
 

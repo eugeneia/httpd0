@@ -13,8 +13,11 @@
   :version "1.2"
   :license "GNU AGPL"
   :author "Max Rottenkolber <max@mr.gy>"
-  :components ((:file "parse-request")
-	       (:file "responses")
+  :components ((:file "headers")
+               (:file "parse-request"
+                      :depends-on ("headers"))
+	       (:file "responses"
+                      :depends-on ("headers"))
 	       (:file "resource-responder"
 		      :depends-on ("responses"))
 	       (:file "httpd"
