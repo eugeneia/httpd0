@@ -30,7 +30,8 @@
 	:httpd0.parse-request
 	:httpd0.responses
 	:httpd0.resource-responder)
-  (:export :*request-size*
+  (:export :http-respond
+           :*request-size*
 	   :*request-timeout*
 	   :make-httpd
 	   :destroy-httpd
@@ -51,19 +52,18 @@
    the client for more than the specified duration are dropped by closing the
    connection.")
 
-(defun respond (responder)
-  "Respond using RESPONDER."
-  (multiple-value-bind (*request-method*
-                        resource
-                        parameters
-                        *protocol-version*
-                        if-modified-since)
-      (parse-request *standard-input* *request-size*)
-    (if (and *protocol-version* *request-method*)
-        (if resource
-            (funcall responder resource parameters if-modified-since)
-            (respond-not-found))
-        (respond-not-implemented))))
+(defun http-respond (connection responder)
+  "Respond to CONNECTION using RESPONDER."
+  (let ((*standard-input* connection)
+        (*standard-output* connection))
+    (multiple-value-bind
+          (*request-method* resource parameters *protocol-version* headers)
+        (parse-request *standard-input* *request-size*)
+      (if *protocol-version*
+          (if resource
+              (funcall responder resource parameters headers)
+              (respond-not-found))
+          (respond-not-implemented)))))
 
 (defmacro handle-errors (&body body)
   "Handle errors in BODY."
@@ -75,11 +75,8 @@
 THREAD-POOL."
   (let ((connection (accept-connection socket)))
     (enqueue-task thread-pool
-      (handle-errors
-        (let ((*standard-input* connection)
-              (*standard-output* connection))
-          (unwind-protect (respond responder)
-            (close connection)))))))
+      (handle-errors (unwind-protect (http-respond connection responder)
+                       (close connection))))))
 
 (defun make-server (host port socket-backlog responder thread-pool)
   "Make server listening on HOST and PORT with SOCKET-BACKLOG using

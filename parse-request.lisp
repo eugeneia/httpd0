@@ -4,6 +4,7 @@
   (:documentation
    "Parse HTTP/1.0 GET and HEAD requests.")
   (:use :cl
+        :httpd0.headers
 	:maxpc
 	:maxpc.char
 	:maxpc.digit
@@ -26,7 +27,8 @@
 (defun =method ()
   "Parser for request method."
   (%or (=method-token :get)
-       (=method-token :head)))
+       (=method-token :head)
+       (=method-token :post)))
 
 (defun ?host ()
   "Parser for resource host."
@@ -114,34 +116,39 @@
        (=token (?endline)
 	       :0.9)))
 
-(defun =header ()
+
+(defun =header (&optional key)
   "Parser for HTTP header."
   (let ((separator (?char #\:)))
-    (=destructure (key _ _ value _)
-        (=list (=subseq (%some (?not (%or (?whitespace) separator))))
+    (=destructure (_ _ _ value _)
+        (=list (or key (%some (?not (%or (?whitespace) separator))))
                separator
                (%any (%diff (?whitespace) (?newline) (?char #\Return)))
                (=subseq (%any (?not (?endline))))
-               (?endline))
-      (cons key value))))
+               (?endline)))))
 
-(defun =if-modified-since ()
-  "Parser for IF-MODIFIED-SINCE header."
-  (=transform (%any (=header))
-              (lambda (headers)
-                (let ((if-modified-since
-                       (cdr (assoc "IF-MODIFIED-SINCE" headers
-                                   :test #'string-equal))))
-                  (and if-modified-since
-                       (parse-date-time if-modified-since))))))
+(defun !if-modified-since (headers)
+  (=transform (=header (?string "If-Modified-Since" nil))
+              (lambda (value)
+                (setf (if-modified-since headers)
+                      (ignore-errors (parse-date-time value))))))
+
+(defun !content-length (headers)
+  (=transform (=header (?string "Content-Length" nil))
+              (lambda (value)
+                (setf (content-length headers)
+                      (parse-integer value)))))
+
+(defun =headers (headers)
+  (=destructure () (%any (?seq (%or (!if-modified-since headers)
+                                    (!content-length headers)
+                                    (=header))))
+    headers))
 
 (defun =request ()
   "Parser for request."
-  (=list (=method)
-	 (=resource)
-         (%maybe (=parameters))
-	 (=version)
-	 (%maybe (=if-modified-since))))
+  (=list (=method) (=resource) (%maybe (=parameters)) (=version)
+         (=headers (make-headers))))
 
 (defun parse-request (stream request-size)
   "Parse REQUEST and return request method, resource, protocol version
