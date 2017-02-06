@@ -84,7 +84,7 @@
         ;; VALUE will be NIL.
         (%maybe (?char #\=)))
        ;; Consume terminating #\& if present.
-       (_ (%maybe (?char #\&))))
+       (%maybe (?char #\&)))
     ;; Return KEY and VALUE as a cons.
     (cons key value)))
 
