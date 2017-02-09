@@ -20,6 +20,8 @@
                       :depends-on ("headers"))
 	       (:file "resource-responder"
 		      :depends-on ("responses"))
+	       (:file "router"
+		      :depends-on ("responses"))
 	       (:file "httpd"
 		      :depends-on ("responses"
 				   "parse-request"
