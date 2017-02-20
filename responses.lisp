@@ -14,6 +14,7 @@
            :if-modified-since
            :content-length
            :uri-encode
+           :universal-time-to-http-date
 	   :respond-ok
            :respond-moved-permanently
 	   :respond-not-modified
@@ -128,6 +129,25 @@
       (months #("Jan" "Feb" "Mar" "Apr" "May" "Jun"
                 "Jul" "Aug" "Sep" "Oct" "Nov" "Dec")))
   (defun universal-time-to-http-date (universal-time)
+    "*Arguments and Values:*
+
+     _universal-time_—a _universal time_.
+
+     *Description:*
+
+     {universal-time-to-http-date} returns a _string_ encoding of
+     _universal-time_ according to the format defined in
+     [RFC 822 Section 5, “Date and Time Specification”](https://tools.ietf.org/html/rfc822#section-5).
+     _Universal-time_ is always encoded as Greenwich Mean Time (GMT), and the
+     resulting string is a valid
+     [HTTP date](https://www.w3.org/Protocols/HTTP/1.0/spec.html#DateFormats).
+
+     *Examples:*
+
+     #code#
+     (universal-time-to-http-date (get-universal-time))
+     → \"Mon, 20 Feb 2017 17:42:12 GMT\"
+     #"
     (multiple-value-bind (second minute hour date month year day
                           daylight-p zone)
         (decode-universal-time universal-time 0) ; Always GMT
