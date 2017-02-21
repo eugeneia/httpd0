@@ -29,8 +29,9 @@ specification.
  variable {httpd0.responses:*text-mime*} controls the _MIME type_ of
  error and directory listing responses.
 
- The MIME type of individual files is determined by {file-types}¹. Consult its
- respective documentation on how to extend the file extension database.
+ The MIME type of individual files is determined by [file-types](/software/file-types/).
+ Consult its respective documentation on how to extend the file extension
+ database.
 
 >
 
@@ -56,7 +57,7 @@ specification.
  valid request. It has to accept two arguments, {resource} and
  {if-modified-since}. The {resource} argument will be a _pathname_
  representing the resource path of the request while {if-modified-since}
- will be the parsed date specified in the requests' {If-Modified-Since}³
+ will be the parsed date specified in the requests' [If-Modified-Since](http://www.w3.org/Protocols/HTTP/1.0/spec.html#If-Modified-Since)
  header or {nil} if none was specified. The {resource} argument will
  always be a relative pathname, beware that its {pathname-directory} may
  contain {:up}.
@@ -104,7 +105,7 @@ specification.
 
  To summarize, the responder is required to:
 
- + Use the {respond-*} routines from {httpd0.responses} (or roll their
+ + Use the {respond-…} routines from {httpd0.responses} (or roll their
    own).
  + Supply the correct byte size of the response, the MIME type and a
    write date to {respond-ok}. The supplied write date must designate
@@ -117,8 +118,3 @@ specification.
  [httpd0 API](api.html).
 
 >
-
-+ 1. [file-types](/software/file-types/)
-+ 2. [q-thread-pool](/software/q-thread-pool/)
-+ 3. [If-Modified-Since](http://www.w3.org/Protocols/HTTP/1.0/spec.html#If-Modified-Since)
-

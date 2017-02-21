@@ -26,7 +26,6 @@
     + httpd0.responses")
   (:use :cl
 	:ccl
-        :q-thread-pool
 	:httpd0.parse-request
 	:httpd0.responses
 	:httpd0.resource-responder)
@@ -70,27 +69,11 @@
   `(handler-case ,@body
      (error (error) (format *error-output* "~s ~a~%" error error))))
 
-(defun accept (socket responder thread-pool)
-  "Accept connection from SOCKET and respond using RESPONDER in
-THREAD-POOL."
-  (let ((connection (accept-connection socket)))
-    (enqueue-task thread-pool
-      (handle-errors (unwind-protect (http-respond connection responder)
-                       (close connection))))))
-
-(defun make-server (host port socket-backlog responder thread-pool)
-  "Make server listening on HOST and PORT with SOCKET-BACKLOG using
-RESPONDER in THREAD-POOL."
-  (let ((socket (make-socket :connect :passive
-                             :local-host host
-                             :local-port port
-                             :backlog socket-backlog
-                             :external-format :utf-8
-                             :input-timeout *request-timeout*
-                             :output-timeout *request-timeout*)))
-    (unwind-protect
-         (loop do (handle-errors (accept socket responder thread-pool)))
-      (close socket))))
+(defun accept (socket responder)
+  "Accept connections from SOCKET and respond using RESPONDER."
+  (loop do (handle-errors (let ((connection (accept-connection socket)))
+                            (unwind-protect (http-respond connection responder)
+                              (close connection))))))
 
 (defun make-httpd (responder &key host
                                   (port 8080)
@@ -105,8 +88,8 @@ RESPONDER in THREAD-POOL."
 
    _port_—a local port number. The default is 8080.
 
-   _n-threads_—a positive _integer_ specifying the number of threads to
-   keep in the thread pool. Must be at least two. The default is 16.
+   _n-threads_—a positive _integer_ denoting the number of threads used to
+   handle requests. The default is 16.
 
    _socket-backlog_—a positive _integer_ specifying the socket _backlog_. The
    default is 32.
@@ -115,10 +98,17 @@ RESPONDER in THREAD-POOL."
 
    {make-httpd} creates a httpd0 server instance with _responder_ that
    listens on the specified _host_ and _port_."
-  (let ((thread-pool (make-thread-pool n-threads (* 4 n-threads))))
-    (enqueue-task thread-pool
-      (make-server host port socket-backlog responder thread-pool))
-    thread-pool))
+  (let ((socket (make-socket :connect :passive
+                             :local-host host
+                             :local-port port
+                             :backlog socket-backlog
+                             :external-format :utf-8
+                             :input-timeout *request-timeout*
+                             :output-timeout *request-timeout*)))
+    (cons socket
+          (loop for i from 1 to n-threads collect
+               (process-run-function (format nil "httpd0-~a-~a" socket i)
+                                     'accept socket responder)))))
 
 (defun destroy-httpd (httpd)
   "*Arguments and Values:*
@@ -128,4 +118,8 @@ RESPONDER in THREAD-POOL."
   *Description:*
 
   {destory-httpd} stops _httpd_ and frees its resources."
-  (destroy-thread-pool httpd))
+  (destructuring-bind (socket . processes) httpd
+    (unwind-protect (dolist (process processes)
+                      (process-kill process)
+                      (join-process process))
+      (close socket :abort t))))

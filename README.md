@@ -29,7 +29,6 @@ Current stable version is
 
 **Dependencies:**
 
-* [q-thread-pool](https://github.com/eugeneia/q-thread-pool)
 * [cl-date-time-parser](https://github.com/tkych/cl-date-time-parser)
 * [maxpc](https://github.com/eugeneia/maxpc)
 * [file-types](https://github.com/eugeneia/file-types)

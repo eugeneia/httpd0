@@ -26,8 +26,7 @@
 		      :depends-on ("responses"
 				   "parse-request"
 				   "resource-responder")))
-  :depends-on ("q-thread-pool"
-	       "trivial-utf-8"
+  :depends-on ("trivial-utf-8"
                "cl-date-time-parser"
 	       "maxpc"
 	       "percent-encoding"
