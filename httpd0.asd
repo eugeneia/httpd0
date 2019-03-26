@@ -8,8 +8,7 @@
 (in-package :httpd0-asd)
 
 (defsystem httpd0
-  :description
-  "HTTP/1.0 GET/HEAD server."
+  :description "HTTP/1.0 server"
   :version "1.2"
   :license "GNU AGPL"
   :author "Max Rottenkolber <max@mr.gy>"
