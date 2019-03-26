@@ -38,7 +38,7 @@
 
 (in-package :httpd0)
 
-(defparameter *request-size* 512
+(defparameter *request-size* 2048
   "*Description:*
 
    Maximum request size in characters. Requests exceeding {*request-size*} are
